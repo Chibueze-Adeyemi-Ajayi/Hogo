@@ -1,0 +1,59 @@
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { UtilsModule } from './common/utils/utils.module';
+import { AuthModule } from './web/auth/auth.module';
+import { DispatcherModule } from './web/dispatcher/dispatcher.module';
+
+@Module({
+  imports: [
+
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ".env"
+    }),
+
+    MongooseModule.forRootAsync({
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+        dbName: configService.get<string>('DB_NAME')
+      }),
+      inject: [ConfigService],
+    }),
+
+    MailerModule.forRoot({
+      transport: {
+        tls: { rejectUnauthorized: false },
+        host: process.env.WEBMAIL_HOST,
+        port: parseInt(process.env.WEBMAIL_PORT || "465"),
+        secure: true,
+        auth: {
+          user: process.env.WEBMAIL_USERNAME,
+          pass: process.env.WEBMAIL_PASSWORD
+        },
+      },
+    }),
+
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 10,
+    }]),
+
+    ScheduleModule.forRoot(),
+
+    UtilsModule,
+
+    AuthModule,
+
+    DispatcherModule,
+
+  ],
+  controllers: [AppController],
+  providers: [AppService], 
+})
+export class AppModule {}
