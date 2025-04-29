@@ -9,6 +9,8 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { UtilsModule } from './common/utils/utils.module';
 import { AuthModule } from './web/auth/auth.module';
 import { DispatcherModule } from './web/dispatcher/dispatcher.module';
+import { DeliveryModule } from './web/delivery/delivery.module';
+import { CourierModule } from './web/courier/courier.module';
 
 @Module({
   imports: [
@@ -51,6 +53,10 @@ import { DispatcherModule } from './web/dispatcher/dispatcher.module';
     AuthModule,
 
     DispatcherModule,
+
+    DeliveryModule,
+
+    CourierModule,
 
   ],
   controllers: [AppController],

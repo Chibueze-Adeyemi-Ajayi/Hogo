@@ -1,0 +1,3 @@
+export enum INSTITUTION_TYPE {
+    LAB = "LAB", HOSPITAL = "HOSPITAL"
+}
