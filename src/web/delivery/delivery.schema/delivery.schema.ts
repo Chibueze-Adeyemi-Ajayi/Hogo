@@ -35,6 +35,9 @@ export class Delivery {
     @Prop({default: false})
     isCancelled: boolean
 
+    @Prop({default: "pending"})
+    status: string
+
     @Prop()
     reason: string
 

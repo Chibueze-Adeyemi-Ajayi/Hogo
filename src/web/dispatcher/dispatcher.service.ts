@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, forwardRef, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Dispatcher, DispatcherDocument } from './dispatcher.schema/dispatcher.schema';
 import { Model } from 'mongoose';
@@ -6,13 +6,14 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { DispatcherSignInDTO, DispatcherSignUpDTO } from './dispatcher.dto/dispatcher.dto';
 import { DeliveryService } from '../delivery/delivery.service';
-import { CancelDeliveryDTO, CreateDeliveryDTO, UpdateDeliveryDTO } from '../delivery/delivery.dto/delivery.dto';
+import { CancelDeliveryDTO, CreateDeliveryDTO, DeliveryQueryDTO, UpdateDeliveryDTO } from '../delivery/delivery.dto/delivery.dto';
 
 @Injectable()
 export class DispatcherService {
     private logger = new Logger(DispatcherService.name)
     constructor(
         private readonly jwtService: JwtService,
+        // @Inject(forwardRef(() => DeliveryService))
         private readonly deliveryService: DeliveryService,
         @InjectModel(Dispatcher.name) private readonly dispatcherModel: Model<DispatcherDocument>
     ) { }
@@ -116,5 +117,14 @@ export class DispatcherService {
     async cancelDelivery(data: CancelDeliveryDTO, tracking_id: string, dispatcher: Dispatcher) {
         this.logger.log("Cancel delivery")
         return await this.deliveryService.cancelDelivery(data, tracking_id, dispatcher)
+    }
+    async viewDelivery (tracking_id: string, dispatcher: Dispatcher) {
+        return await this.deliveryService.viewDelivery(tracking_id, dispatcher);
+    }
+    async viewAllDelivery (query: DeliveryQueryDTO, dispatcher: Dispatcher) {
+        return await this.deliveryService.viewAllDelivery(query, dispatcher);
+    }
+    async submitDelivery (tracking_id: string, dispatcher: Dispatcher) {
+        return await this.deliveryService.submitDelivery(tracking_id, dispatcher);
     }
 }
