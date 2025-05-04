@@ -136,8 +136,8 @@ export class ChangePasswordDTO {
   token: string;
 
   @ApiProperty({
-    description: "OTP sent",
-    example: "123456",
+    description: "The new password",
+    example: "new password",
   })
   @IsNotEmpty()
   password: string;
