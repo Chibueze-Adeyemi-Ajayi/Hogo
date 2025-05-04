@@ -1,13 +1,14 @@
 import { ConflictException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Delivery, DeliveryDocument } from './delivery.schema/delivery.schema';
-import mongoose, { Model, Mongoose, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CancelDeliveryDTO, CreateDeliveryDTO, DeliveryQueryDTO, UpdateDeliveryDTO } from './delivery.dto/delivery.dto';
-import { Dispatcher } from '../dispatcher/dispatcher.schema/dispatcher.schema';
+// import { Dispatcher } from '../dispatcher/dispatcher.schema/dispatcher.schema';
 import { log } from 'console';
 import { IRecipient } from './delivery.interface/delivery.interface';
 import { DateFilterType } from './delivery.enum/delivery.enum';
 import { UtilsService } from 'src/common/utils/utils.service';
+import { User } from '../user/user.schema/user.schema';
 
 @Injectable()
 export class DeliveryService {
@@ -15,14 +16,14 @@ export class DeliveryService {
         @Inject() private readonly utilService: UtilsService,
         @InjectModel(Delivery.name) private readonly deliveryModel: Model<DeliveryDocument>
     ) { }
-    private async getDelivery(tracking_id: string, dispatcher: Dispatcher) {
+    private async getDelivery(tracking_id: string, dispatcher: User) {
         let delivery = await this.deliveryModel.findOne({ tracking_id });
         if (!delivery) throw new NotFoundException({ message: `Delivery with Tracking ID ${tracking_id} not found` });
         if (delivery.dispatcher.toString().trim() != (<any>dispatcher).id.toString().trim()) throw new UnauthorizedException({ message: "Permission denied" })
         log({ delivery })
         return delivery
     }
-    async addDelivery(data: CreateDeliveryDTO, dispatcher: Dispatcher) {
+    async addDelivery(data: CreateDeliveryDTO, dispatcher: User) {
 
         let count: number = await this.deliveryModel.countDocuments()
         count += 1;
@@ -43,9 +44,11 @@ export class DeliveryService {
 
         // await this.deliveryModel.findByIdAndUpdate(delivery.id, { dispatcher })
 
+        this.submitDelivery(delivery.tracking_id, dispatcher);
+
         return await this.deliveryModel.findById(delivery.id);
     }
-    async updateDelivery(data: UpdateDeliveryDTO, tracking_id: string, dispatcher: Dispatcher) {
+    async updateDelivery(data: UpdateDeliveryDTO, tracking_id: string, dispatcher: User) {
         let delivery = await this.getDelivery(tracking_id, dispatcher);
 
         let recipient: IRecipient = {
@@ -61,19 +64,19 @@ export class DeliveryService {
 
         return await this.deliveryModel.findById(delivery.id);
     }
-    async cancelDelivery(data: CancelDeliveryDTO, tracking_id: string, dispatcher: Dispatcher) {
+    async cancelDelivery(data: CancelDeliveryDTO, tracking_id: string, dispatcher: User) {
         let delivery = await this.getDelivery(tracking_id, dispatcher);
 
         if (delivery.active) throw new UnauthorizedException({ message: "This delivery is already in service" })
 
-        await this.deliveryModel.findByIdAndUpdate(delivery.id, { ...data, isCancelled: true });
+        await this.deliveryModel.findByIdAndUpdate(delivery.id, { ...data, status: "cancelled", isCancelled: true });
 
-        return await this.deliveryModel.findById(delivery.id);
+        return await this.deliveryModel.findById(delivery.id); 
     }
-    async viewDelivery(tracking_id: string, dispatcher: Dispatcher) {
+    async viewDelivery(tracking_id: string, dispatcher: User) {
         return await this.getDelivery(tracking_id, dispatcher);
     }
-    async viewAllDelivery(query: DeliveryQueryDTO, dispatcher: Dispatcher) {
+    async viewAllDelivery(query: DeliveryQueryDTO, dispatcher: User) {
 
         const {
             page = 1,
@@ -106,9 +109,13 @@ export class DeliveryService {
         // Full-text search
         if (searchQuery) {
             mongoQuery.$or = [
-                { tracking_id: { $regex: searchQuery, $options: 'i' } },
+                { 'tracking_id': { $regex: searchQuery, $options: 'i' } },
                 { 'pickup_address': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_dept': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_staff_name': { $regex: searchQuery, $options: 'i' } },
                 { 'dropoff_address': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_dept': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_staff_name': { $regex: searchQuery, $options: 'i' } },
                 { 'location': { $regex: searchQuery, $options: 'i' } },
                 { 'recipient.email': { $regex: searchQuery, $options: 'i' } },
                 { 'recipient.phone_number_1': { $regex: searchQuery, $options: 'i' } },
@@ -144,11 +151,11 @@ export class DeliveryService {
             throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
         }
     }
-    async submitDelivery (tracking_id: string, dispatcher: Dispatcher) {
+    private async submitDelivery (tracking_id: string, dispatcher: User) {
         const delivery: Delivery = await this.getDelivery(tracking_id, dispatcher);
         if (delivery.status != "pending") throw new ConflictException({message: "Order is already been " + delivery.status})
         if (delivery.isCancelled) throw new ConflictException({message:"This delivery has already been cancelled"})
-        this.utilService.sendEmail("", "", delivery.recipient.email);
+        this.utilService.sendEmail(`This is dummy sample of the confirmation email sent to the recipient of a delivery order. This would be worked on next alongside recipient & courier module`, "Delivery Notification", delivery.recipient.email);
         return {
             message: "Request has been sent to the recipient for approval",
             delivery

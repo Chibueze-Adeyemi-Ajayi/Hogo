@@ -1,7 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { log } from 'console';
-import { DispatcherService } from 'src/web/dispatcher/dispatcher.service';
+import { UserService } from 'src/web/user/user.service';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -22,16 +21,19 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
 
 @Injectable()
-export class DispatcherGuard implements CanActivate {
-  constructor(private dispatcherService: DispatcherService) {}
+export class UserGuard implements CanActivate {
+  constructor(private userService: UserService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     
     const request = context.switchToHttp().getRequest();
     const authorizationHeader = request.headers.authorization;
+
+    if (!authorizationHeader) throw new UnauthorizedException({message: "Authorization token is absent from header"})
+
     const token = authorizationHeader.split(' ')[1];
 
-    const auth = await this.dispatcherService.getDispatcherByJWT(token);
+    const auth = await this.userService.getUserByJWT(token);
 
     if (!auth) throw new NotFoundException({ message: "Please login" })
 

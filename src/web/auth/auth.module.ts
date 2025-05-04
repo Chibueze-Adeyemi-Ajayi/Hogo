@@ -4,10 +4,11 @@ import { AuthService } from './auth.service';
 import { DispatcherModule } from '../dispatcher/dispatcher.module';
 import { JwtService } from '@nestjs/jwt';
 import { JwtStrategy } from './auth.strategy/auth.strategy';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
-    DispatcherModule
+    DispatcherModule, UserModule
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtService]

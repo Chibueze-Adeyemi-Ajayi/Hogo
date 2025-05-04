@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsArray, IsBoolean, IsDate, IsEmail, IsEnum, IsNumber, IsOptional, IsPositive, IsString, Length, max, min } from "class-validator";
 import { DateFilterType } from "../delivery.enum/delivery.enum";
+import { ISpecimen } from "../delivery.interface/delivery.interface";
 
 export class CreateDeliveryDTO {
 
@@ -10,15 +11,35 @@ export class CreateDeliveryDTO {
     }) @IsString() pickup_address: string
 
     @ApiProperty({
+        description: "Department the specimen is to be picked from",
+        example: "Radiology"
+    }) @IsString() pickup_dept: string
+
+    @ApiProperty({
+        description: "Staff to pickup the item from",
+        example: "Elon Musk"
+    }) @IsString() pickup_staff_name: string
+
+    @ApiProperty({
         description: "Location where the specimen is to be picked from",
         example: "EKO Atlantic City, Lagos State, Nigeria"
     }) @IsString() dropoff_address: string
 
     @ApiProperty({
-        required: false,
+        description: "Staff to drop the item to",
+        example: "Bill Gates"
+    }) @IsString() dropoff_staff_name: string
+
+    @ApiProperty({
+        description: "Department the specimen is to be dropped",
+        example: "ICU"
+    }) @IsString() dropoff_dept: string
+
+    @ApiProperty({
+        // required: false,
         description: "Individual receiving the delivery phone number 1",
         example: "+2348100000000"
-    }) @IsString() @IsOptional() recipient_phone_number_1: string
+    }) @IsString() recipient_phone_number_1: string
 
     @ApiProperty({
         required: false,
@@ -27,23 +48,23 @@ export class CreateDeliveryDTO {
     }) @IsString() @IsOptional() recipient_phone_number_2: string
 
     @ApiProperty({
-        required: false,
+        // required: false,
         description: "Individual receiving the delivery email",
         example: "individual@website.com"
-    }) @IsEmail() @IsOptional() recipient_email: string
+    }) @IsEmail() recipient_email: string
 
     @ApiProperty({
-        required: false,
+        // required: false,
         description: "List of specimen to be added to the delivery",
         example: [
             {
                 type: "blood",
                 quantity: 1,
-                description: "Red blood cell for a dying patient",
+                note: "Red blood cell for a dying patient",
                 code: "MED-TO1",
             }
         ]
-    }) @IsArray() @IsOptional() specimen: Object[]
+    }) @IsArray() specimen: ISpecimen[]
 
 }
 
@@ -57,9 +78,33 @@ export class UpdateDeliveryDTO {
 
     @ApiProperty({
         required: false,
+        description: "Department the specimen is to be picked from",
+        example: "Radiology"
+    }) @IsString() @IsOptional() pickup_dept: string
+
+    @ApiProperty({
+        required: false,
+        description: "Staff to pickup the item from",
+        example: "Elon Musk"
+    }) @IsString() @IsOptional() pickup_staff_name: string
+
+    @ApiProperty({
+        required: false,
         description: "Location where the specimen is to be picked from",
         example: "EKO Atlantic City, Lagos State, Nigeria"
     }) @IsString() @IsOptional() dropoff_address: string
+
+    @ApiProperty({
+        required: false,
+        description: "Staff to drop the item to",
+        example: "Bill Gates"
+    }) @IsString() @IsOptional() dropoff_staff_name: string
+
+    @ApiProperty({
+        required: false,
+        description: "Department the specimen is to be dropped",
+        example: "ICU"
+    }) @IsString() @IsOptional() dropoff_dept: string
 
     @ApiProperty({
         required: false,

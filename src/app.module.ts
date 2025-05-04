@@ -11,6 +11,7 @@ import { AuthModule } from './web/auth/auth.module';
 import { DispatcherModule } from './web/dispatcher/dispatcher.module';
 import { DeliveryModule } from './web/delivery/delivery.module';
 import { CourierModule } from './web/courier/courier.module';
+import { UserModule } from './web/user/user.module';
 
 @Module({
   imports: [
@@ -57,6 +58,8 @@ import { CourierModule } from './web/courier/courier.module';
     DeliveryModule,
 
     CourierModule,
+
+    UserModule,
 
   ],
   controllers: [AppController],

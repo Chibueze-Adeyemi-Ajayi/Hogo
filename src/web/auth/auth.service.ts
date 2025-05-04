@@ -1,16 +1,27 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DispatcherService } from '../dispatcher/dispatcher.service';
-import { DispatcherSignInDTO, DispatcherSignUpDTO } from '../dispatcher/dispatcher.dto/dispatcher.dto';
+import { UserService } from '../user/user.service';
+import { ChangePasswordDTO, RequestOTP, UserDto, UserSignInDTO, ValidateOTP } from '../user/user.dto/user.dto';
 
 @Injectable()
 export class AuthService {
     constructor (
-        @Inject() private readonly dispatcherService: DispatcherService
+        @Inject() private readonly userService: UserService,
     ) {}
-    async dispatcherSignIn (data: DispatcherSignInDTO) {
-        return await this.dispatcherService.signIn(data);
+    async signIn (data: UserSignInDTO) {
+        // return await this.dispatcherService.signIn(data);
+        return await this.userService.signIn(data)
     }
-    async dispatcherSignUp (data: DispatcherSignUpDTO) {
-        return await this.dispatcherService.signUp(data);
+    async signUp (data: UserDto) {
+        // return await this.dispatcherService.signUp(data);
+        return await this.userService.signUp(data)
+    }
+    async requestOtp(data: RequestOTP) {
+        return await this.userService.requestOtp(data)
+    }
+    async validateOTP (data: ValidateOTP) {
+        return await this.userService.validateOTP(data)
+    }
+    async changePassword (data: ChangePasswordDTO) {
+        return await this.userService.changePassword(data)
     }
 }
