@@ -36,7 +36,7 @@ async function bootstrap() {
         scheme: 'bearer',
         bearerFormat: 'JWT', 
         name: 'Authorization',
-        description: 'Enter JWT token',
+        description: 'Enter JWT token', 
         in: 'header',
       },
       'JWT-auth',
