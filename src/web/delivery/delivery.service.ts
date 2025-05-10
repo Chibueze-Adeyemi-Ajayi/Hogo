@@ -36,7 +36,9 @@ export class DeliveryService {
             email: data.recipient_email
         }
 
-        let delivery = new this.deliveryModel({ ...data, tracking_id, dispatcher, recipient });
+        let price = parseInt(data.distance) * parseInt(process.env.UNIT_PRICE_PER_KM)
+
+        let delivery = new this.deliveryModel({ ...data, tracking_id, price, dispatcher, recipient });
 
         await delivery.save()
 

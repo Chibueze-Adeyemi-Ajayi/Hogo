@@ -55,12 +55,23 @@ export class CreateDeliveryDTO {
 
     @ApiProperty({
         // required: false,
+        description: "Delivery note",
+        example: "Lorem ipsum"
+    }) @IsString() note: string
+
+    @ApiProperty({
+        // required: false,
+        description: "Distance in KM",
+        example: "765"
+    }) @IsString() distance: string
+
+    @ApiProperty({
+        // required: false,
         description: "List of specimen to be added to the delivery",
         example: [
             {
                 type: "blood",
                 quantity: 1,
-                note: "Red blood cell for a dying patient",
                 code: "MED-TO1",
             }
         ]
@@ -126,8 +137,8 @@ export class UpdateDeliveryDTO {
 
     @ApiProperty({
         required: false,
-        description: "Calculated distance of travel",
-        example: "600km"
+        description: "Calculated distance of travel in km",
+        example: "600"
     }) @IsString() @IsOptional() distance: string
 
     @ApiProperty({

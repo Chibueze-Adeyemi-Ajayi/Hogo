@@ -1,7 +1,7 @@
 export interface ISpecimen {
     type: string,
     quantity: number,
-    note: string,
+    // note: string,
     code: string, 
 }
 

@@ -68,6 +68,12 @@ export class Delivery {
 
     @Prop()
     delivery_date: Date
+
+    @Prop()
+    note: string
+
+    @Prop()
+    price: string
 }
 
 export const DeliverySchema = SchemaFactory.createForClass(Delivery);
