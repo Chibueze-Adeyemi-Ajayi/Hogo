@@ -272,7 +272,7 @@ export class UserService {
 
         this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up !", email);
 
-        this.utilService.sendEmail(`Hello \n Your delivery order ${delivery.tracking_id} has been picked up by the recipient.${tracking_link}`, "Delivery Pick up", delivery.recipient.email);
+        this.utilService.sendEmail(`Hello \n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up", delivery.recipient.email);
 
     }
 }
