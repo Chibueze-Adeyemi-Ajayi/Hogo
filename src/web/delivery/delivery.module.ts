@@ -6,6 +6,7 @@ import { Delivery, DeliverySchema } from './delivery.schema/delivery.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { DispatcherModule } from '../dispatcher/dispatcher.module';
 import { UtilsModule } from 'src/common/utils/utils.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { UtilsModule } from 'src/common/utils/utils.module';
     ]),
     // JwtModule,
     // DispatcherModule,
+    UserModule,
     UtilsModule
   ],
   controllers: [DeliveryController],

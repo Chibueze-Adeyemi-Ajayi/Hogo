@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsNotEmpty, IsEmail, IsOptional, Length } from "class-validator";
+import { IsString, IsNotEmpty, IsEmail, IsOptional, Length, IsBoolean } from "class-validator";
 
 export class UserDto {
 
@@ -79,13 +79,13 @@ export class UserSignInDTO {
   @IsNotEmpty()
   email: string;
 
-//   @ApiProperty({
-//     description: "User's email",
-//     example: "john@doe.com",
-//   })
-//   @IsEmail()
-//   @IsNotEmpty()
-//   role: string;
+  //   @ApiProperty({
+  //     description: "User's email",
+  //     example: "john@doe.com",
+  //   })
+  //   @IsEmail()
+  //   @IsNotEmpty()
+  //   role: string;
 
 }
 
@@ -141,5 +141,17 @@ export class ChangePasswordDTO {
   })
   @IsNotEmpty()
   password: string;
+
+}
+
+export class ToogleDeliveryDTO {
+
+  @ApiProperty({
+    description: "The action performed by the recipient (accept or reject)",
+    example: true,
+  })
+  @IsBoolean()
+  @IsNotEmpty()
+  action: boolean;
 
 }
