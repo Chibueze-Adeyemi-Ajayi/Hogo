@@ -28,6 +28,14 @@ export class UserDto {
   department: string;
 
   @ApiProperty({
+    description: "User phone number",
+    example: "2348131869009",
+  })
+  @IsString()
+  @IsNotEmpty()
+  phone_number: string;
+
+  @ApiProperty({
     description: "User's role",
     example: "Dispatcher",
   })
@@ -59,6 +67,78 @@ export class UserDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+export class UpdateUserDto {
+
+  @ApiProperty({
+    description: "User's name",
+    example: "John Doe",
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  // @ApiProperty({
+  //   description: "User's email",
+  //   example: "john@doe.com",
+  //   required: false
+  // })
+  // @IsOptional()
+  // @IsEmail()
+  // @IsNotEmpty()
+  // email: string;
+
+  @ApiProperty({
+    description: "User's department",
+    example: "Radiology",
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  department: string;
+
+  @ApiProperty({
+    description: "User phone number",
+    example: "2348131869009",
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  phone_number: string;
+
+  @ApiProperty({
+    description: "User's role",
+    example: "Dispatcher",
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  role: string;
+
+  @ApiProperty({
+    description: "User's staff number",
+    example: "SN12345",
+    required:false
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  staff_number: string;
+
+  @ApiProperty({
+    required: false,
+    description: "Admin Id",
+    example: "1234",
+  })
+  @IsString()
+  @IsOptional()
+  admin_id: string;
 }
 
 export class UserSignInDTO {

@@ -19,6 +19,9 @@ export class User {
     role: string
 
     @Prop()
+    phone_number: string
+
+    @Prop()
     staff_number: string
 
     @Prop()

@@ -99,7 +99,7 @@ export class DeliveryService {
             page = 1,
             limit = 10,
             sort = true,
-            canceled = false,
+            canceled,
             date_filter_type,
             from_date,
             to_date,
@@ -110,9 +110,9 @@ export class DeliveryService {
         log({ query })
 
         const skip = (page - 1) * limit;
-        const sortOrder = sort ? 1 : -1; // 1 for ascending, -1 for descending
+        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
 
-        const mongoQuery: any = { isCancelled: canceled }; // Filter by cancellation status
+        const mongoQuery: any = canceled ? { isCancelled: canceled } : {}; // Filter by cancellation status
 
         // Date filtering
         if (date_filter_type && from_date && to_date) {
@@ -151,9 +151,10 @@ export class DeliveryService {
         try {
             const deliveries = await this.deliveryModel
                 .find(mongoQuery)
+                .populate(["courier", "dispatcher"])
                 .skip(skip)
                 .limit(limit)
-                .sort({ [date_filter_type]: sortOrder }) // Sort by the selected date field
+                .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
                 .exec();
 
             const total = await this.deliveryModel.countDocuments(mongoQuery);
@@ -185,7 +186,7 @@ export class DeliveryService {
         log({ query })
 
         const skip = (page - 1) * limit;
-        const sortOrder = sort ? 1 : -1; // 1 for ascending, -1 for descending
+        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
 
         const mongoQuery: any = { isCancelled: canceled }; // Filter by cancellation status
 
@@ -227,9 +228,10 @@ export class DeliveryService {
         try {
             const deliveries = await this.deliveryModel
                 .find(mongoQuery)
+                .populate(["courier", "dispatcher"])
                 .skip(skip)
                 .limit(limit)
-                .sort({ [date_filter_type]: sortOrder }) // Sort by the selected date field
+                .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
                 .exec();
 
             const total = await this.deliveryModel.countDocuments(mongoQuery);
@@ -261,7 +263,7 @@ export class DeliveryService {
         log({ query })
 
         const skip = (page - 1) * limit;
-        const sortOrder = sort ? 1 : -1; // 1 for ascending, -1 for descending
+        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
 
         const mongoQuery: any = { isCancelled: canceled }; // Filter by cancellation status
 
@@ -303,9 +305,10 @@ export class DeliveryService {
         try {
             const deliveries = await this.deliveryModel
                 .find(mongoQuery)
+                .populate(["courier", "dispatcher"])
                 .skip(skip)
                 .limit(limit)
-                .sort({ [date_filter_type]: sortOrder }) // Sort by the selected date field
+                .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
                 .exec();
 
             const total = await this.deliveryModel.countDocuments(mongoQuery);

@@ -1,6 +1,6 @@
 import { ConflictException, Inject, Injectable, Logger, NotAcceptableException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ChangePasswordDTO, RequestOTP, ToogleDeliveryDTO, UserDto, UserSignInDTO, ValidateOTP } from './user.dto/user.dto';
+import { ChangePasswordDTO, RequestOTP, ToogleDeliveryDTO, UpdateUserDto, UserDto, UserSignInDTO, ValidateOTP } from './user.dto/user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './user.schema/user.schema';
 import { Model } from 'mongoose';
@@ -274,5 +274,17 @@ export class UserService {
 
         this.utilService.sendEmail(`Hello \n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up", delivery.recipient.email);
 
+    }
+    async updateProfile (user: User, data: UpdateUserDto) {
+        let updated_user = await this.userModel.findByIdAndUpdate((<any>user).id, data);
+        return {
+            message: "Profile update successfully",
+            data: await this.userModel.findById((<any>user).id)
+        }
+    }
+    async viewProfile (user: User) {
+        return {
+            data: await this.userModel.findById((<any>user).id)
+        }
     }
 }
