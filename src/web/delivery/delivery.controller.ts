@@ -23,7 +23,7 @@ export class DeliveryController {
     }
 
     @Get("statistics")
-    @ApiQuery({ name: 'type', required: true, type: 'string', description: 'The types of account', example: "dispatcher" })
+    @ApiQuery({ name: 'type', required: true, type: 'string', description: 'User role', example: "dispatcher" })
     async getDeliveryStatistics(@AuthUser() user: User, @Query("type") type: string) {
         return await this.deliveryService.getDeliveryStatistics(user, type);
     }
