@@ -224,6 +224,26 @@ export class ChangePasswordDTO {
 
 }
 
+export class UpdatePasswordDTO {
+
+  @ApiProperty({
+    description: "Old password",
+    example: "old password",
+  })
+  @IsString()
+  @Length(8)
+  @IsNotEmpty()
+  old_password: string;
+
+  @ApiProperty({
+    description: "The new password",
+    example: "new password",
+  })
+  @IsNotEmpty()
+  password: string;
+
+}
+
 export class ToogleDeliveryDTO {
 
   @ApiProperty({

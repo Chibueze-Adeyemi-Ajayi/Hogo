@@ -375,67 +375,79 @@ export class DeliveryService {
         await this.userService.pickupDeliveryNotification(delivery);
         return await this.deliveryModel.findById(delivery.id)
     }
-    async getDeliveryStatistics() {
+    async getDeliveryStatistics(user: User, type: string) {
+        // log({user})
         const now = new Date();
         const lastWeekStart = startOfWeek(subWeeks(now, 1), { locale: enUS });
         const lastWeekEnd = endOfWeek(subWeeks(now, 1), { locale: enUS });
+        const userId = new Types.ObjectId((<any> user).id); // Convert user._id to ObjectId
+
+        // Determine the field to filter by based on the 'type' parameter
+        const typeField = type === 'courier' ? 'courier' : 'dispatcher';
 
         // Helper function to get counts with optional date range
         const getCounts = async (match: any = {}) => {
             return {
-                total: await this.deliveryModel.countDocuments(match).exec(),
-                pending: await this.deliveryModel.countDocuments({ ...match, status: 'pending' }).exec(),
-                inTransit: await this.deliveryModel.countDocuments({ ...match, status: 'in-transit' }).exec(),
-                delivered: await this.deliveryModel.countDocuments({ ...match, status: 'delivered' }).exec(),
-                cancelled: await this.deliveryModel.countDocuments({ ...match, isCancelled: true }).exec(),
+                total: await this.deliveryModel.countDocuments({ [typeField]: userId, ...match }).exec(),
+                pending: await this.deliveryModel
+                    .countDocuments({ [typeField]: userId, ...match, status: 'pending' })
+                    .exec(),
+                inTransit: await this.deliveryModel
+                    .countDocuments({ [typeField]: userId, ...match, status: 'in-transit' })
+                    .exec(),
+                delivered: await this.deliveryModel
+                    .countDocuments({ [typeField]: userId, ...match, status: 'delivered' })
+                    .exec(),
+                cancelled: await this.deliveryModel
+                    .countDocuments({ [typeField]: userId, ...match, isCancelled: true })
+                    .exec(),
             };
         };
 
         // Get current counts
-        const currentCounts = await getCounts();
+        const currentCounts = await getCounts({ [typeField]: userId });
 
         // Get counts for the previous week
         const previousCounts = await getCounts({
             createdAt: { $gte: lastWeekStart, $lte: lastWeekEnd },
+            [typeField]: userId, // Use the determined field
         });
 
         // Calculate percentage changes
         const calculatePercentageChange = (current: number, previous: number) => {
-            if (previous === 0) return current === 0 ? 0 : 100; // Handle the case where previous is 0
+            if (previous === 0) return current === 0 ? 0 : 100;
             const change = ((current - previous) / previous) * 100;
-            return Math.min(change, 100); // Ensure percentage change is not greater than 100%
+            return Math.min(change, 100);
         };
 
         const percentageChanges = {
             total: calculatePercentageChange(currentCounts.total, previousCounts.total),
             pending: calculatePercentageChange(currentCounts.pending, previousCounts.pending),
-            inTransit: calculatePercentageChange(currentCounts.inTransit, previousCounts.pending),
+            inTransit: calculatePercentageChange(currentCounts.inTransit, previousCounts.inTransit),
             delivered: calculatePercentageChange(currentCounts.delivered, previousCounts.delivered),
             cancelled: calculatePercentageChange(currentCounts.cancelled, previousCounts.cancelled),
         };
 
         // Get deliveries by time range
         const getDeliveriesByTimeRange = async (startDate: Date, endDate: Date) => {
-            return this.deliveryModel.find({
-                createdAt: {
-                    $gte: startDate,
-                    $lte: endDate,
-                },
-            }).exec();
+            return this.deliveryModel
+                .find({
+                    createdAt: { $gte: startDate, $lte: endDate },
+                    [typeField]: userId, // Use the determined field
+                })
+                .exec();
         };
 
         const getDeliveriesCountByTimeRange = async (startDate: Date, endDate: Date) => {
             return this.deliveryModel.countDocuments({
-                createdAt: {
-                    $gte: startDate,
-                    $lte: endDate,
-                },
+                createdAt: { $gte: startDate, $lte: endDate },
+                [typeField]: userId, // Use the determined field
             }).exec();
         };
 
         // Yearly deliveries for the past 12 months
         const yearlyDeliveries = eachMonthOfInterval({
-            start: subMonths(now, 11), // Start 11 months ago
+            start: subMonths(now, 11),
             end: now,
         }).map(async (date) => {
             const monthEnd = endOfMonth(date);
@@ -443,26 +455,26 @@ export class DeliveryService {
             return { month: format(date, 'MMMM', { locale: enUS }), count };
         });
 
-        // Fix: Monthly deliveries should count per day of the month
+        // Monthly deliveries
         const monthlyDeliveries = eachDayOfInterval({ start: startOfMonth(now), end: endOfMonth(now) }).map(async (date) => {
             const dayEnd = addDays(date, 1);
             const count = await getDeliveriesCountByTimeRange(date, dayEnd);
-            return { day: format(date, 'yyyy-MM-dd', { locale: enUS }), count }; // Use ISO format
+            return { day: format(date, 'yyyy-MM-dd', { locale: enUS }), count };
         });
 
-        // Ensure weekly deliveries are Monday to Sunday
+        // Weekly deliveries
         const weeklyDeliveries = eachDayOfInterval({
-            start: startOfWeek(now, { locale: enGB }), // Use enGB locale to start on Monday
+            start: startOfWeek(now, { locale: enGB }),
             end: endOfWeek(now, { locale: enGB }),
         }).map(async (date) => {
-            const dayEnd = addDays(date, 1); // Add one day to the end day
+            const dayEnd = addDays(date, 1);
             const count = await getDeliveriesCountByTimeRange(date, dayEnd);
-            console.log(`Debug: Date: ${format(date, 'yyyy-MM-dd', { locale: enUS })}`); // Log the date
+            console.log(`Debug: Date: ${format(date, 'yyyy-MM-dd', { locale: enUS })}`);
             return {
                 day: format(date, 'EEEE', { locale: enUS }),
                 date: format(date, 'yyyy-MM-dd', { locale: enUS }),
                 count,
-            }; // Include the day of the week
+            };
         });
 
         const [yearlyCounts, monthlyCounts, weeklyCounts] = await Promise.all([
@@ -473,9 +485,10 @@ export class DeliveryService {
 
         // Get latest 10 deliveries
         const latestDeliveries = await this.deliveryModel
-            .find()
-            .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+            .find({ [typeField]: userId }) // Use the determined field
+            .sort({ createdAt: -1 })
             .limit(10)
+            .populate(['dispatcher', 'courier'])
             .exec();
 
         return {

@@ -1,9 +1,9 @@
 import { ConflictException, Inject, Injectable, Logger, NotAcceptableException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ChangePasswordDTO, RequestOTP, ToogleDeliveryDTO, UpdateUserDto, UserDto, UserSignInDTO, ValidateOTP } from './user.dto/user.dto';
+import { ChangePasswordDTO, RequestOTP, ToogleDeliveryDTO, UpdatePasswordDTO, UpdateUserDto, UserDto, UserSignInDTO, ValidateOTP } from './user.dto/user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './user.schema/user.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { UserOTP, UserOTPDocument } from './user.schema/user.otp.schema';
@@ -11,6 +11,8 @@ import { UtilsService } from 'src/common/utils/utils.service';
 import { Delivery } from '../delivery/delivery.schema/delivery.schema';
 import { Recipient, RecipientDocument } from './user.schema/recipient.schema';
 import { log } from 'console';
+import { NotificationDocument, Notification } from './user.schema/user.notification.schema';
+import { NotificationDto } from './user.dto/user.notification.dto';
 
 @Injectable()
 export class UserService {
@@ -21,6 +23,7 @@ export class UserService {
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(UserOTP.name) private readonly userOTPModel: Model<UserOTPDocument>,
         @InjectModel(Recipient.name) private readonly recipientModel: Model<RecipientDocument>,
+        @InjectModel(Notification.name) private readonly notificationModel: Model<NotificationDocument>,
     ) { }
 
     async getUserByJWT(jwt: string) {
@@ -275,19 +278,61 @@ export class UserService {
         this.utilService.sendEmail(`Hello \n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up", delivery.recipient.email);
 
     }
-    async updateProfile (user: User, data: UpdateUserDto) {
+    async updateProfile(user: User, data: UpdateUserDto) {
         let updated_user = await this.userModel.findByIdAndUpdate((<any>user).id, data);
         return {
             message: "Profile update successfully",
             data: await this.userModel.findById((<any>user).id)
         }
     }
-    async viewProfile (user: User) {
+    async viewProfile(user: User) {
         return {
-            data: await this.userModel.findById((<any>user).id)
+            data: await this.userModel.findById((<any>user).id),
+            notification: await this.notificationModel.findOne({ "user": new Types.ObjectId((<any>user).id.toString()) })
         }
     }
-    // async getDeliveryStatistics() {
-    //     return await delivery
-    // }
+    async stackNotification(userId: string) {
+        let user = await this.userModel.findById(userId);
+        // mongoQuery.courier = new Types.ObjectId((<any>(<any>courier).id).toString())
+        let idObj = new Types.ObjectId(userId);
+        // log({ idObj })
+        let existing_notification = await this.notificationModel.findOne({ "user": idObj });
+        // log({ existing_notification })
+        if (existing_notification) {
+            this.logger.log("Exisitng notification")
+            return existing_notification;
+        }
+        this.logger.log("Creating notification")
+        let notification = new this.notificationModel({ user });
+        let data = await notification.save();
+        // log({data})
+        return data
+    }
+    async changePasswordSettings(user: User, data: UpdatePasswordDTO) {
+
+        const saltOrRounds = parseInt(process.env.BYCRYPT_SALT);
+        const hash = await bcrypt.hash(data.password, saltOrRounds);
+
+        if (!await bcrypt.compare(data.old_password, user.password)) throw new ConflictException({ message: "Invalid password" });
+
+        await this.userModel.findByIdAndUpdate((<any>user).id, { password: hash })
+
+        return {
+            message: "Password change successfully"
+        }
+    }
+    async updateNotificationSettings (user: User, data: NotificationDto) {
+
+        let idObj = new Types.ObjectId((<any>user).id.toString());
+        // log({ idObj })
+        let existing_notification = await this.notificationModel.findOne({ "user": idObj });
+
+        await this.notificationModel.findByIdAndUpdate(existing_notification.id, data);
+
+        return {
+            message: "Notification settings updated successfully",
+            data: await this.notificationModel.findOne({ "user": idObj })
+        }
+
+    }
 }

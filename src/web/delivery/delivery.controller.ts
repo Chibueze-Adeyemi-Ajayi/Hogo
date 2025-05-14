@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Inject, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UserGuard, JwtAuthGuard } from '../auth/auth.guards/auth.guard';
 import { ToogleDeliveryDTO } from '../user/user.dto/user.dto';
 import { DeliveryService } from './delivery.service';
@@ -7,9 +7,9 @@ import { AuthUser } from '../auth/auth.decorators/auth.decorator';
 import { User } from '../user/user.schema/user.schema';
 
 @Controller('delivery')
-// @ApiBearerAuth("JWT-auth")
-// @UseGuards(JwtAuthGuard)
-// @UseGuards(DispatcherGuard)
+@ApiBearerAuth("JWT-auth")
+@UseGuards(JwtAuthGuard)
+@UseGuards(UserGuard)
 export class DeliveryController {
 
     constructor (
@@ -23,8 +23,9 @@ export class DeliveryController {
     }
 
     @Get("statistics")
-    async getDeliveryStatistics(@AuthUser() user: User) {
-        return await this.deliveryService.getDeliveryStatistics();
+    @ApiQuery({ name: 'type', required: true, type: 'string', description: 'The types of account', example: "dispatcher" })
+    async getDeliveryStatistics(@AuthUser() user: User, @Query("type") type: string) {
+        return await this.deliveryService.getDeliveryStatistics(user, type);
     }
 
 }

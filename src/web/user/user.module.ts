@@ -8,6 +8,7 @@ import { UserOTP, UserOTPSchema } from './user.schema/user.otp.schema';
 import { UtilsModule } from 'src/common/utils/utils.module';
 import { Recipient, RecipientSchema } from './user.schema/recipient.schema';
 import { DeliveryModule } from '../delivery/delivery.module';
+import { NotificationSchema, Notification } from './user.schema/user.notification.schema';
 
 @Module({
   controllers: [UserController],
@@ -16,7 +17,8 @@ import { DeliveryModule } from '../delivery/delivery.module';
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: UserOTP.name, schema: UserOTPSchema },
-      { name: Recipient.name, schema: RecipientSchema }
+      { name: Recipient.name, schema: RecipientSchema },
+      { name: Notification.name, schema: NotificationSchema }
     ]),
     JwtModule,
     UtilsModule,
