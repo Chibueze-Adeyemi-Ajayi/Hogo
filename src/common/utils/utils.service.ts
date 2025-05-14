@@ -17,12 +17,16 @@ export class UtilsService {
                 subject,
                 text: message,
             });
-            
+
         } catch (error: any) {
             return null;
         }
     }
 
+    addToDate(date, days) {
+        var result = date.setDate(date.getDate() + days);
+        return new Date(result)
+    }
 
     generateOTP(length: number = 4) {
         const digits = '0123456789';

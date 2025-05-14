@@ -10,7 +10,23 @@ import { DateFilterType } from './delivery.enum/delivery.enum';
 import { UtilsService } from 'src/common/utils/utils.service';
 import { User } from '../user/user.schema/user.schema';
 import { UserService } from '../user/user.service';
-import { ToogleDeliveryDTO } from '../user/user.dto/user.dto';
+import { ToogleDeliveryDTO } from '../user/user.dto/user.dto'; // Import your Delivery model/schema
+import {
+    startOfWeek,
+    endOfWeek,
+    startOfMonth,
+    endOfMonth,
+    startOfYear,
+    endOfYear,
+    subWeeks,
+    eachDayOfInterval,
+    eachWeekOfInterval,
+    eachMonthOfInterval,
+    format,
+    subMonths,
+    addDays
+} from 'date-fns'; // Import date-fns
+import { enUS, enGB } from 'date-fns/locale'; // Import locale if needed
 
 @Injectable()
 export class DeliveryService {
@@ -358,5 +374,117 @@ export class DeliveryService {
         if (!await this.deliveryModel.findByIdAndUpdate(delivery.id, { status: "in-transit", courier })) throw new ConflictException({ message: "Error picking up delivery" });
         await this.userService.pickupDeliveryNotification(delivery);
         return await this.deliveryModel.findById(delivery.id)
+    }
+    async getDeliveryStatistics() {
+        const now = new Date();
+        const lastWeekStart = startOfWeek(subWeeks(now, 1), { locale: enUS });
+        const lastWeekEnd = endOfWeek(subWeeks(now, 1), { locale: enUS });
+
+        // Helper function to get counts with optional date range
+        const getCounts = async (match: any = {}) => {
+            return {
+                total: await this.deliveryModel.countDocuments(match).exec(),
+                pending: await this.deliveryModel.countDocuments({ ...match, status: 'pending' }).exec(),
+                inTransit: await this.deliveryModel.countDocuments({ ...match, status: 'in-transit' }).exec(),
+                delivered: await this.deliveryModel.countDocuments({ ...match, status: 'delivered' }).exec(),
+                cancelled: await this.deliveryModel.countDocuments({ ...match, isCancelled: true }).exec(),
+            };
+        };
+
+        // Get current counts
+        const currentCounts = await getCounts();
+
+        // Get counts for the previous week
+        const previousCounts = await getCounts({
+            createdAt: { $gte: lastWeekStart, $lte: lastWeekEnd },
+        });
+
+        // Calculate percentage changes
+        const calculatePercentageChange = (current: number, previous: number) => {
+            if (previous === 0) return current === 0 ? 0 : 100; // Handle the case where previous is 0
+            const change = ((current - previous) / previous) * 100;
+            return Math.min(change, 100); // Ensure percentage change is not greater than 100%
+        };
+
+        const percentageChanges = {
+            total: calculatePercentageChange(currentCounts.total, previousCounts.total),
+            pending: calculatePercentageChange(currentCounts.pending, previousCounts.pending),
+            inTransit: calculatePercentageChange(currentCounts.inTransit, previousCounts.pending),
+            delivered: calculatePercentageChange(currentCounts.delivered, previousCounts.delivered),
+            cancelled: calculatePercentageChange(currentCounts.cancelled, previousCounts.cancelled),
+        };
+
+        // Get deliveries by time range
+        const getDeliveriesByTimeRange = async (startDate: Date, endDate: Date) => {
+            return this.deliveryModel.find({
+                createdAt: {
+                    $gte: startDate,
+                    $lte: endDate,
+                },
+            }).exec();
+        };
+
+        const getDeliveriesCountByTimeRange = async (startDate: Date, endDate: Date) => {
+            return this.deliveryModel.countDocuments({
+                createdAt: {
+                    $gte: startDate,
+                    $lte: endDate,
+                },
+            }).exec();
+        };
+
+        // Yearly deliveries for the past 12 months
+        const yearlyDeliveries = eachMonthOfInterval({
+            start: subMonths(now, 11), // Start 11 months ago
+            end: now,
+        }).map(async (date) => {
+            const monthEnd = endOfMonth(date);
+            const count = await getDeliveriesCountByTimeRange(date, monthEnd);
+            return { month: format(date, 'MMMM', { locale: enUS }), count };
+        });
+
+        // Fix: Monthly deliveries should count per day of the month
+        const monthlyDeliveries = eachDayOfInterval({ start: startOfMonth(now), end: endOfMonth(now) }).map(async (date) => {
+            const dayEnd = addDays(date, 1);
+            const count = await getDeliveriesCountByTimeRange(date, dayEnd);
+            return { day: format(date, 'yyyy-MM-dd', { locale: enUS }), count }; // Use ISO format
+        });
+
+        // Ensure weekly deliveries are Monday to Sunday
+        const weeklyDeliveries = eachDayOfInterval({
+            start: startOfWeek(now, { locale: enGB }), // Use enGB locale to start on Monday
+            end: endOfWeek(now, { locale: enGB }),
+        }).map(async (date) => {
+            const dayEnd = addDays(date, 1); // Add one day to the end day
+            const count = await getDeliveriesCountByTimeRange(date, dayEnd);
+            console.log(`Debug: Date: ${format(date, 'yyyy-MM-dd', { locale: enUS })}`); // Log the date
+            return {
+                day: format(date, 'EEEE', { locale: enUS }),
+                date: format(date, 'yyyy-MM-dd', { locale: enUS }),
+                count,
+            }; // Include the day of the week
+        });
+
+        const [yearlyCounts, monthlyCounts, weeklyCounts] = await Promise.all([
+            Promise.all(yearlyDeliveries),
+            Promise.all(monthlyDeliveries),
+            Promise.all(weeklyDeliveries),
+        ]);
+
+        // Get latest 10 deliveries
+        const latestDeliveries = await this.deliveryModel
+            .find()
+            .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+            .limit(10)
+            .exec();
+
+        return {
+            counts: currentCounts,
+            percentageChanges,
+            yearlyDeliveries: yearlyCounts,
+            monthlyDeliveries: monthlyCounts,
+            weeklyDeliveries: weeklyCounts,
+            latestDeliveries,
+        };
     }
 }

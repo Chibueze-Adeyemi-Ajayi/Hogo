@@ -287,4 +287,7 @@ export class UserService {
             data: await this.userModel.findById((<any>user).id)
         }
     }
+    // async getDeliveryStatistics() {
+    //     return await delivery
+    // }
 }

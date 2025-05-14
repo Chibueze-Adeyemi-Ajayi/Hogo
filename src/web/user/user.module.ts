@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UserOTP, UserOTPSchema } from './user.schema/user.otp.schema';
 import { UtilsModule } from 'src/common/utils/utils.module';
 import { Recipient, RecipientSchema } from './user.schema/recipient.schema';
+import { DeliveryModule } from '../delivery/delivery.module';
 
 @Module({
   controllers: [UserController],
@@ -18,7 +19,8 @@ import { Recipient, RecipientSchema } from './user.schema/recipient.schema';
       { name: Recipient.name, schema: RecipientSchema }
     ]),
     JwtModule,
-    UtilsModule
+    UtilsModule,
+    // DeliveryModule
   ],
   exports: [UserService]
 })
