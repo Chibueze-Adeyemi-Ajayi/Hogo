@@ -82,7 +82,7 @@ export class UserService {
     async signIn(data: UserSignInDTO) {
         this.logger.log("User signin")
 
-        let user = await this.userModel.findOne({ email: data.email });
+        let user = await this.userModel.findOne({ email: data.email }).select(["password", "token"]).exec();
 
         if (!user) throw new NotFoundException({ message: "Email not found" });
 
@@ -97,13 +97,13 @@ export class UserService {
             await this.userModel.findByIdAndUpdate(user.id, { token: jwt_secret })
         }
 
-        let new_user = await this.userModel.findById(user.id);
+        let new_user = await this.userModel.findById(user.id).select(["password", "token"]).exec();
 
         delete new_user["password"];
 
         return {
             message: "Login successful",
-            data: new_user,
+            data: await this.userModel.findById(user.id),
             jwt_secret: new_user.token
         }
 

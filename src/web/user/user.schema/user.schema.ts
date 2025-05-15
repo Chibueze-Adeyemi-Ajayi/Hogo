@@ -24,10 +24,10 @@ export class User {
     @Prop()
     staff_number: string
 
-    @Prop()
+    @Prop({ select: false })
     token: string
 
-    @Prop()
+    @Prop({ select: false })
     admin_id: string
 
     @Prop({ default: false })
@@ -36,7 +36,7 @@ export class User {
     @Prop({ default: false })
     is_approved: boolean
 
-    @Prop()
+    @Prop({ select: false })
     password: string
 
 }

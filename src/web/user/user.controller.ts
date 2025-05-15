@@ -23,7 +23,7 @@ export class UserController {
     async viewProfile(@AuthUser() user: User) {
         return await this.userService.viewProfile(user);
     }
-    @Patch("settings/passwod")
+    @Patch("settings/password")
     async changePasswordSettings(@AuthUser() user: User, @Body() data: UpdatePasswordDTO) {
         return await this.userService.changePasswordSettings(user, data)
     }
