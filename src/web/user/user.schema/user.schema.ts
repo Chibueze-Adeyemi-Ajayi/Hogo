@@ -36,6 +36,9 @@ export class User {
     @Prop({ default: false })
     is_approved: boolean
 
+    @Prop({ default: false })
+    is_active: boolean
+
     @Prop({ select: false })
     password: string
 

@@ -27,13 +27,16 @@ import {
     addDays
 } from 'date-fns'; // Import date-fns
 import { enUS, enGB } from 'date-fns/locale'; // Import locale if needed
+import { Tracking, TrackingDocument } from './delivery.schema/tracking.schema';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class DeliveryService {
     constructor(
         @Inject() private readonly userService: UserService,
         @Inject() private readonly utilService: UtilsService,
-        @InjectModel(Delivery.name) private readonly deliveryModel: Model<DeliveryDocument>
+        @InjectModel(Delivery.name) private readonly deliveryModel: Model<DeliveryDocument>,
+        @InjectModel(Tracking.name) private readonly trackingModel: Model<TrackingDocument>
     ) { }
     private async getDelivery(tracking_id: string, dispatcher: User) {
         let delivery = await this.deliveryModel.findOne({ tracking_id }).populate(["dispatcher", "courier"]).exec();
@@ -47,6 +50,12 @@ export class DeliveryService {
 
         // log({ delivery })
 
+    }
+    async updateTracking(sessionId: string, data) {
+        let tracking = await this.trackingModel.findOne({ sessionId });
+        if (!tracking) throw new NotFoundException({ message: "Could not track this order, please check thesession ID" });
+        await this.trackingModel.findByIdAndUpdate(tracking.id, data);
+        return true;
     }
     async addDelivery(data: CreateDeliveryDTO, dispatcher: User) {
 
@@ -97,6 +106,12 @@ export class DeliveryService {
 
         return await this.deliveryModel.findById(delivery.id);
     }
+    async updateDeliveryFromTracking(delivery: Delivery, data) {
+        return await this.deliveryModel.findByIdAndUpdate((<any>delivery).id, data);
+    }
+    async getTracking(sessionId: string) {
+        return await this.trackingModel.findOne({ sessionId })
+    }
     async cancelDelivery(data: CancelDeliveryDTO, tracking_id: string, dispatcher: User) {
         let delivery = await this.getDelivery(tracking_id, dispatcher);
 
@@ -107,7 +122,9 @@ export class DeliveryService {
         return await this.deliveryModel.findById(delivery.id);
     }
     async viewDelivery(tracking_id: string, dispatcher: User) {
-        return await this.getDelivery(tracking_id, dispatcher);
+        let delivery = await this.deliveryModel.findOne({ tracking_id })
+        let tracking = await this.trackingModel.findOne({ delivery: delivery.id })
+        return { delivery, sessionId: tracking.sessionId };
     }
     async viewAllDelivery(query: DeliveryQueryDTO, dispatcher: User) {
 
@@ -368,19 +385,28 @@ export class DeliveryService {
 
     }
     async acceptPickup(tracking_id: string, courier: User) {
+
         let delivery = await this.deliveryModel.findOne({ tracking_id });
+
         if (delivery.status != "pending") throw new ConflictException({ message: "This delivery is no longer waititng to be picked up" })
         if (!delivery) throw new NotFoundException({ message: "Delivery no longer fund" })
         if (!await this.deliveryModel.findByIdAndUpdate(delivery.id, { status: "in-transit", courier })) throw new ConflictException({ message: "Error picking up delivery" });
-        await this.userService.pickupDeliveryNotification(delivery);
-        return await this.deliveryModel.findById(delivery.id)
+
+        let sessionId = uuidv4();
+        let tracking = new this.trackingModel({ sessionId, delivery });
+
+        await tracking.save();
+
+        await this.userService.pickupDeliveryNotification(delivery, sessionId);
+
+        return { delivery: await this.deliveryModel.findById(delivery.id), sessionId }
     }
     async getDeliveryStatistics(user: User, type: string) {
         // log({user})
         const now = new Date();
         const lastWeekStart = startOfWeek(subWeeks(now, 1), { locale: enUS });
         const lastWeekEnd = endOfWeek(subWeeks(now, 1), { locale: enUS });
-        const userId = new Types.ObjectId((<any> user).id); // Convert user._id to ObjectId
+        const userId = new Types.ObjectId((<any>user).id); // Convert user._id to ObjectId
 
         // Determine the field to filter by based on the 'type' parameter
         const typeField = type === 'courier' ? 'courier' : 'dispatcher';
@@ -499,5 +525,89 @@ export class DeliveryService {
             weeklyDeliveries: weeklyCounts,
             latestDeliveries,
         };
+    }
+    async recipientViewDelivery(sessionId: string) {
+        let tracking = await this.trackingModel.findOne({ sessionId }).populate(["delivery"]).exec();
+        if (!tracking) throw new NotFoundException({ message: "Could not get this delivery" });
+        let delivery = await this.deliveryModel.findOne({ tracking_id: tracking.delivery.tracking_id }).populate(["dispatcher", "courier"]);
+        return delivery;
+    }
+    async recipientViewAllDelivery(email: string, query: DeliveryQueryDTO) {
+
+        const {
+            page = 1,
+            limit = 10,
+            sort = true,
+            canceled = false,
+            date_filter_type,
+            from_date,
+            to_date,
+            status,
+            query: searchQuery
+        } = query;
+
+        log({ query })
+
+        const skip = (page - 1) * limit;
+        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
+
+        const mongoQuery: any = {
+            isCancelled: canceled,
+            // recipient: {
+            //     email
+            // }
+        }; // Filter by cancellation status
+
+        // Date filtering
+        if (date_filter_type && from_date && to_date) {
+            const dateField = date_filter_type === DateFilterType.CREATION_DATE ? 'createdAt' : 'delivery_date';
+            mongoQuery[dateField] = {
+                $gte: new Date(from_date),
+                $lte: new Date(to_date),
+            };
+        }
+
+        // Full-text search
+        if (searchQuery) {
+            mongoQuery.$or = [
+                { 'tracking_id': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_address': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_dept': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_staff_name': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_address': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_dept': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_staff_name': { $regex: searchQuery, $options: 'i' } },
+                { 'location': { $regex: searchQuery, $options: 'i' } },
+            ];
+        }
+
+        if (status) {
+            mongoQuery.status = "pending";
+        }
+
+        mongoQuery["recipient.email"] = email;
+
+        log(mongoQuery)
+
+        try {
+            const deliveries = await this.deliveryModel
+                .find({ ...mongoQuery })
+                .populate(["courier", "dispatcher"])
+                .skip(skip)
+                .limit(limit)
+                .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
+                .exec();
+
+            const total = await this.deliveryModel.countDocuments(mongoQuery);
+            return {
+                deliveries,
+                page,
+                limit,
+                total,
+            };
+        } catch (error) {
+            console.error("Error fetching deliveries:", error);
+            throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
+        }
     }
 }

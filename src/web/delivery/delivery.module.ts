@@ -7,11 +7,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { DispatcherModule } from '../dispatcher/dispatcher.module';
 import { UtilsModule } from 'src/common/utils/utils.module';
 import { UserModule } from '../user/user.module';
+import { Tracking, TrackingSchema } from './delivery.schema/tracking.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      {name: Delivery.name, schema: DeliverySchema}
+      {name: Delivery.name, schema: DeliverySchema},
+      {name: Tracking.name, schema: TrackingSchema}
     ]),
     // JwtModule,
     // DispatcherModule,

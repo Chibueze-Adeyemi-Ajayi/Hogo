@@ -13,6 +13,7 @@ import { Recipient, RecipientDocument } from './user.schema/recipient.schema';
 import { log } from 'console';
 import { NotificationDocument, Notification } from './user.schema/user.notification.schema';
 import { NotificationDto } from './user.dto/user.notification.dto';
+import { CourierOnDutyModeDTO } from '../courier/courier.dto/courier.dto';
 
 @Injectable()
 export class UserService {
@@ -260,7 +261,7 @@ export class UserService {
 
     }
 
-    async pickupDeliveryNotification(delivery: Delivery) {
+    async pickupDeliveryNotification(delivery: Delivery, sessionId: string) {
 
         let id = (<any>delivery).id;
         let recipient = await this.recipientModel.findOne({ delivery: id });
@@ -271,7 +272,7 @@ export class UserService {
 
         let dispatcher = delivery.dispatcher, email = dispatcher.email, name = dispatcher.name;
 
-        let tracking_link = `\nUse this link ${process.env.BASE_URL}/track/${delivery.tracking_id} to track the delivery`
+        let tracking_link = `\nUse this link ${process.env.BASE_URL}/track/${sessionId} to track the delivery`
 
         this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up !", email);
 
@@ -334,5 +335,16 @@ export class UserService {
             data: await this.notificationModel.findOne({ "user": idObj })
         }
 
+    }
+
+    async toggleIsActiveMode (data: CourierOnDutyModeDTO, user: User) {
+        let fetched_user = await this.userModel.findById((<any>user).id);
+        if (!fetched_user) throw new NotFoundException({message: "User not found, please login again"});
+        fetched_user.is_active = data.is_active;
+        await fetched_user.save();
+        return {
+            message:"Update successful",
+            data: await this.userModel.findById((<any>user).id)
+        }
     }
 }

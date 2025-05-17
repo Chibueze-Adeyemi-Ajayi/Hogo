@@ -6,7 +6,6 @@
 // @Schema({ timestamps: true })
 // export class Courier {
 
- 
 // }
 
 // export const CourierSchema = SchemaFactory.createForClass(Courier);

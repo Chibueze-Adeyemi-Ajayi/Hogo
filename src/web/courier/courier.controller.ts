@@ -1,9 +1,10 @@
-import { Controller, Get, Inject, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { AuthUser } from '../auth/auth.decorators/auth.decorator';
 import { CourierService } from './courier.service';
 import { User } from '../user/user.schema/user.schema';
 import { JwtAuthGuard, UserGuard } from '../auth/auth.guards/auth.guard';
+import { CourierOnDutyModeDTO } from './courier.dto/courier.dto';
 
 @Controller('courier')
 @ApiBearerAuth("JWT-auth")
@@ -30,6 +31,7 @@ export class CourierController {
 
     @Get("pick-up/my-list")
     @ApiQuery({ name: 'query', required: false, type: 'string', description: 'The search parameter - tracking_id, addresses, courier, location, recipient (email & phone number) (optional)', example: 'ORD0009' })
+    @ApiQuery({ name: 'status', required: false, type: 'string', enum: ["pending", "in-transit", "cancelled", "delivered"], description: 'The status of the delivery (optional)', example: 'pending' })
     @ApiQuery({ name: 'page', required: false, type: 'number', description: 'The current page for the pagination (optional)', example: 1 })
     @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'The number of results expected (optional)', example: 10 })
     // @ApiQuery({ name: 'canceled', required: false, type: 'boolean', description: 'Filter the result as active or canceled delivery {false => active delivery, true => cancelled delivery} (optional)', example: false })
@@ -51,6 +53,11 @@ export class CourierController {
     @ApiParam({ name: 'tracking_id', type: 'string', description: 'Tracking ID of the delivery', required: true })
     async viewPickup(@AuthUser() courier: User, @Param("tracking_id") tracking_id: any) {
         return await this.courierService.viewPickup(tracking_id, courier);
+    }
+
+    @Patch("toogle/duty-mode")
+    async toggleOnDutyMode (@Body() data: CourierOnDutyModeDTO, @AuthUser() courier: User) {
+        return await this.courierService.toggleOnDutyMode(data, courier)
     }
 
 }

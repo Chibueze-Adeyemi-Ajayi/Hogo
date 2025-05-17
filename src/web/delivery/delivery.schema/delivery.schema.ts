@@ -67,6 +67,12 @@ export class Delivery {
     location: string
 
     @Prop()
+    estimated_distance: string
+
+    @Prop()
+    estimated_time_of_arrival: string
+
+    @Prop()
     distance: string
 
     @Prop()

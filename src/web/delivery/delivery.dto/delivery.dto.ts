@@ -154,11 +154,18 @@ export class UpdateDeliveryDTO {
             {
                 type: "blood",
                 quantity: 1,
-                description: "Red blood cell for a dying patient",
                 code: "MED-TO1",
             }
         ]
     }) @IsArray() @IsOptional() specimen: Object[]
+
+
+    @ApiProperty({
+        // required: false,
+        description: "Delivery note",
+        example: "Lorem ipsum"
+    }) @IsString() note: string
+
 
 }
 

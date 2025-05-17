@@ -34,14 +34,14 @@ async function bootstrap() {
       {
         type: 'http',
         scheme: 'bearer',
-        bearerFormat: 'JWT', 
+        bearerFormat: 'JWT',
         name: 'Authorization',
-        description: 'Enter JWT token', 
+        description: 'Enter JWT token',
         in: 'header',
       },
       'JWT-auth',
     )
-    .build(); 
+    .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
