@@ -124,7 +124,7 @@ export class DeliveryService {
     async viewDelivery(tracking_id: string, dispatcher: User) {
         let delivery = await this.deliveryModel.findOne({ tracking_id })
         let tracking = await this.trackingModel.findOne({ delivery: delivery.id })
-        return { delivery, sessionId: tracking.sessionId };
+        return { delivery, sessionId: tracking ? tracking.sessionId : null };
     }
     async viewAllDelivery(query: DeliveryQueryDTO, dispatcher: User) {
 
