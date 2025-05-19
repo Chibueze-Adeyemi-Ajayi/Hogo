@@ -48,7 +48,7 @@ export class Delivery {
     @Prop({default: false})
     isCancelled: boolean
 
-    @Prop({default: false})
+    @Prop({default: true})
     isAccepted: boolean
 
     @Prop({default: "pending"})
