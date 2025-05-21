@@ -1,15 +1,28 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Notification, NotificationDocument } from './schema/NotificationSchema';
+import { Model } from 'mongoose';
+import { UserService } from 'src/web/user/user.service';
 
 @Injectable()
 export class UtilsService {
 
     private logger = new Logger(MailerService.name);
 
-    constructor(private readonly mailService: MailerService) { }
+    constructor(
+        private readonly mailService: MailerService,
+        // @Inject(forwardRef(() => UserService)) private readonly userService: UserService,
+        @InjectModel(Notification.name) private readonly notificationModel: Model<NotificationDocument>
+    ) { }
 
-    async sendEmail(message: string, subject: string, recipient: string) {
+    async sendEmail(message: string, subject: string, recipient: string, type: string) {
         try {
+
+            if (type) {
+                let notification = new this.notificationModel({ message, type, email: recipient })
+                await notification.save();
+            }
 
             return await this.mailService.sendMail({
                 from: `Hogoe <${process.env.WEBMAIL_USERNAME}>`,
@@ -57,5 +70,8 @@ export class UtilsService {
         return base64String;
     }
 
+    async getNotifications (email) {
+        return (await this.notificationModel.find({email})).reverse()
+    }
 
 }

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CourierController } from './courier.controller';
 import { CourierService } from './courier.service';
 import { DeliveryModule } from '../delivery/delivery.module';
@@ -8,8 +8,9 @@ import { UserModule } from '../user/user.module';
   controllers: [CourierController],
   providers: [CourierService],
   imports: [
-    DeliveryModule,
+    forwardRef(() => DeliveryModule),
     UserModule
-  ]
+  ],
+  exports: [CourierService]
 })
 export class CourierModule {}

@@ -1,4 +1,4 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { DeliveryService } from '../delivery/delivery.service';
 import { DeliveryQueryDTO } from '../delivery/delivery.dto/delivery.dto';
 import { User } from '../user/user.schema/user.schema';
@@ -9,7 +9,7 @@ import { UserService } from '../user/user.service';
 export class CourierService {
     constructor (
         @Inject() private readonly userService: UserService,
-        @Inject() private readonly deliveryService: DeliveryService,
+        @Inject(forwardRef(() => DeliveryService)) private readonly deliveryService: DeliveryService,
     ) {}
     async viewAvailablePickupDelivery(query: DeliveryQueryDTO, courier: User) {
         return await this.deliveryService.viewAvailablePickupDelivery(query, courier);
@@ -29,5 +29,8 @@ export class CourierService {
     }
     async submitPickup (tracking_id: string, courier: User) {
 
+    }
+    async getActiveCourier() {
+        return await this.userService.getActiveUsers({ role: "Courier" })
     }
 }

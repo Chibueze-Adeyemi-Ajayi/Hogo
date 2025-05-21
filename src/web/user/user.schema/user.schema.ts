@@ -18,6 +18,9 @@ export class User {
     @Prop()
     role: string
 
+    @Prop({ default: null, select: true })
+    profile_pics: string
+
     @Prop()
     phone_number: string
 

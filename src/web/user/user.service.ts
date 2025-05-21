@@ -14,6 +14,7 @@ import { log } from 'console';
 import { NotificationDocument, Notification } from './user.schema/user.notification.schema';
 import { NotificationDto } from './user.dto/user.notification.dto';
 import { CourierOnDutyModeDTO } from '../courier/courier.dto/courier.dto';
+import { MicrosoftAzureService } from 'src/third-party/microsoft-azure/microsoft-azure.service';
 
 @Injectable()
 export class UserService {
@@ -21,6 +22,7 @@ export class UserService {
     constructor(
         @Inject() private readonly jwtService: JwtService,
         @Inject() private readonly utilService: UtilsService,
+        @Inject() private readonly microsoftAzureService: MicrosoftAzureService,
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(UserOTP.name) private readonly userOTPModel: Model<UserOTPDocument>,
         @InjectModel(Recipient.name) private readonly recipientModel: Model<RecipientDocument>,
@@ -133,7 +135,7 @@ export class UserService {
 
         this.logger.debug(`OTP ${otp} stored for user ${email}`);
 
-        this.utilService.sendEmail(`Your password reset OTP is ${otp}, it would expire in 10 minutes time: ${otpExpiry}`, "OTP Request", email);
+        this.utilService.sendEmail(`Your password reset OTP is ${otp}, it would expire in 10 minutes time: ${otpExpiry}`, "OTP Request", email, null);
 
         return {
             message: `An email has been sent to ${email}`,
@@ -249,13 +251,13 @@ export class UserService {
 
         if (!action) {
 
-            this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been rejected by the recipient`, "Delivery Rejected !", email);
+            this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been rejected by the recipient`, "Delivery Rejected !", email, "canceled");
 
             return false;
 
         }
 
-        this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been accepted by the recipient.\nOnce a courier picks it up you'd be able to track it.`, "Delivery Accepted", email);
+        this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been accepted by the recipient.\nOnce a courier picks it up you'd be able to track it.`, "Delivery Accepted", email, "location");
 
         return true;
 
@@ -274,9 +276,9 @@ export class UserService {
 
         let tracking_link = `\nUse this link ${process.env.BASE_URL}/track/${sessionId} to track the delivery`
 
-        this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up !", email);
+        this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up !", email, "box");
 
-        this.utilService.sendEmail(`Hello \n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up", delivery.recipient.email);
+        this.utilService.sendEmail(`Hello \n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up", delivery.recipient.email, "box");
 
     }
     async updateProfile(user: User, data: UpdateUserDto) {
@@ -347,4 +349,20 @@ export class UserService {
             data: await this.userModel.findById((<any>user).id)
         }
     }
+
+    async getActiveUsers (clause) {
+        return await this.userModel.find({ ... clause, is_active: true });
+    }
+
+    async uploadProfilePicture (user: User, file: Express.Multer.File) {
+        let data = await this.microsoftAzureService.uploadFiles([file]);
+        let { url } = data[0];
+        await this.userModel.findByIdAndUpdate((<any> user).id, { profile_pics: url });
+        return await this.userModel.findById((<any> user).id);
+    }
+
+    async getNotificationMessages (user: User) {
+        return await this.utilService.getNotifications(user.email)
+    }
+
 }

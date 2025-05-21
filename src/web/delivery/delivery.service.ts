@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, forwardRef, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Delivery, DeliveryDocument } from './delivery.schema/delivery.schema';
 import { Model, Types } from 'mongoose';
@@ -29,12 +29,14 @@ import {
 import { enUS, enGB } from 'date-fns/locale'; // Import locale if needed
 import { Tracking, TrackingDocument } from './delivery.schema/tracking.schema';
 import { v4 as uuidv4 } from 'uuid';
+import { CourierService } from '../courier/courier.service';
 
 @Injectable()
 export class DeliveryService {
     constructor(
         @Inject() private readonly userService: UserService,
         @Inject() private readonly utilService: UtilsService,
+        @Inject() private readonly courierService: CourierService,
         @InjectModel(Delivery.name) private readonly deliveryModel: Model<DeliveryDocument>,
         @InjectModel(Tracking.name) private readonly trackingModel: Model<TrackingDocument>
     ) { }
@@ -363,9 +365,18 @@ export class DeliveryService {
         if (delivery.status != "pending") throw new ConflictException({ message: "Order is already been " + delivery.status });
         if (delivery.isCancelled) throw new ConflictException({ message: "This delivery has already been cancelled" });
 
-        const msg = `Hello\n You are receiving this email because you'll be receiving an order.\n Click this link ${process.env.BASE_URL}/delivery/accept/${slug} to confirm.`;
+        // const msg = `Hello\n You are receiving this email because you'll be receiving an order.\n Click this link ${process.env.BASE_URL}/delivery/accept/${slug} to confirm.`;
 
-        this.utilService.sendEmail(msg, "Delivery Notification", delivery.recipient.email);
+        // this.utilService.sendEmail(msg, "Delivery Notification", delivery.recipient.email);
+
+        let couriers = await this.courierService.getActiveCourier();
+
+        log({couriers})
+
+        couriers.forEach(courier => {
+            const msg = `Hello ${courier.name}\n\nAn order is available for pickup, kindly check available orders to pick it up`;
+            this.utilService.sendEmail(msg, "Delivery Alert !", courier.email, "box");
+        })
 
         return {
             message: "Request has been sent to the recipient for approval",

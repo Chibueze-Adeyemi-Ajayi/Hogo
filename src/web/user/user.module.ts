@@ -9,6 +9,7 @@ import { UtilsModule } from 'src/common/utils/utils.module';
 import { Recipient, RecipientSchema } from './user.schema/recipient.schema';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { NotificationSchema, Notification } from './user.schema/user.notification.schema';
+import { MicrosoftAzureModule } from 'src/third-party/microsoft-azure/microsoft-azure.module';
 
 @Module({
   controllers: [UserController],
@@ -22,6 +23,7 @@ import { NotificationSchema, Notification } from './user.schema/user.notificatio
     ]),
     JwtModule,
     UtilsModule,
+    MicrosoftAzureModule
     // DeliveryModule
   ],
   exports: [UserService]

@@ -255,3 +255,8 @@ export class ToogleDeliveryDTO {
   action: boolean;
 
 }
+
+export class UploadFileDto {
+  @ApiProperty({ type: 'string', format: 'binary', description: 'The file to upload' })
+  file: Express.Multer.File;
+}
