@@ -92,6 +92,16 @@ export class DeliveryService {
 
         return await this.deliveryModel.findById(delivery.id);
     }
+    async submitDeliveryAfterPickup(data: { delivery_evidence: string, status: string }, id: string, sessionId: string) {
+        let delivery = await this.deliveryModel.findById(id);
+        if (!delivery) throw new NotFoundException({ message: "Delivery not found" })
+        let update = await this.deliveryModel.findByIdAndUpdate(id, data);
+        // forward email
+        let receiver = delivery.recipient.email, url = process.env.BASE_URL + "/accept/delivery-submission/" + sessionId;
+        const msg = `Hello \n\Your delivery is available for you to pickup from the courier, use this link to confirm ${url}`;
+        this.utilService.sendEmail(msg, "Delivery Alert !", receiver, "location");
+        return update;
+    }
     async updateDelivery(data: UpdateDeliveryDTO, tracking_id: string, dispatcher: User) {
         let delivery = await this.getDelivery(tracking_id, dispatcher);
 
@@ -123,10 +133,17 @@ export class DeliveryService {
 
         return await this.deliveryModel.findById(delivery.id);
     }
-    async viewDelivery(tracking_id: string, dispatcher: User) {
+    async viewDelivery(tracking_id: string, dispatcher?: User) {
         let delivery = await this.deliveryModel.findOne({ tracking_id })
         let tracking = await this.trackingModel.findOne({ delivery: delivery.id })
         return { delivery, sessionId: tracking ? tracking.sessionId : null };
+    }
+    async viewDeliveryBySessionId(sessionId: string, dispatcher?: User) {
+        let tracking = await this.trackingModel.findOne({ sessionId }).populate("delivery").exec();
+        if (!tracking) throw new NotFoundException({ message: "Invalid tracking session ID" });
+        let delivery = await tracking.delivery;
+        // if (!delivery) throw new NotFoundException({ message: "No valid delivery attached to tracking" });
+        return delivery;
     }
     async viewAllDelivery(query: DeliveryQueryDTO, dispatcher: User) {
 
@@ -371,7 +388,7 @@ export class DeliveryService {
 
         let couriers = await this.courierService.getActiveCourier();
 
-        log({couriers})
+        log({ couriers })
 
         couriers.forEach(courier => {
             const msg = `Hello ${courier.name}\n\nAn order is available for pickup, kindly check available orders to pick it up`;
@@ -619,6 +636,16 @@ export class DeliveryService {
         } catch (error) {
             console.error("Error fetching deliveries:", error);
             throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
+        }
+    }
+    async confirmDeliverySubmission (sessionId: string) {
+        let delivery = await this.viewDeliveryBySessionId(sessionId);
+        await this.deliveryModel.findByIdAndUpdate((<any> delivery).id, { status: "delivered" });
+        let new_delivery = await this.deliveryModel.findById((<any> delivery).id).populate("courier");
+        this.userService.notifyCourier(new_delivery.courier)
+        return {
+            message: "Delivery accepted successfully",
+            data: new_delivery
         }
     }
 }

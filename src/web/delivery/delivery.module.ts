@@ -10,6 +10,7 @@ import { UserModule } from '../user/user.module';
 import { Tracking, TrackingSchema } from './delivery.schema/tracking.schema';
 import { CourierService } from '../courier/courier.service';
 import { CourierModule } from '../courier/courier.module';
+import { MicrosoftAzureModule } from 'src/third-party/microsoft-azure/microsoft-azure.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { CourierModule } from '../courier/courier.module';
     // DispatcherModule,
     UserModule,
     UtilsModule,
-    CourierModule
+    CourierModule,
+    MicrosoftAzureModule
   ],
   controllers: [DeliveryController],
   providers: [DeliveryService, CourierService],

@@ -6,25 +6,25 @@ export type UserDocument = User & Document
 @Schema({ timestamps: true })
 export class User {
 
-    @Prop()
+    @Prop({ select: true })
     name: string
 
-    @Prop()
+    @Prop({ select: true })
     email: string
 
-    @Prop()
+    @Prop({ select: true })
     department: string
 
-    @Prop()
+    @Prop({ select: true })
     role: string
 
     @Prop({ default: null, select: true })
     profile_pics: string
 
-    @Prop()
+    @Prop({ select: true })
     phone_number: string
 
-    @Prop()
+    @Prop({ select: true })
     staff_number: string
 
     @Prop({ select: false })
@@ -39,7 +39,7 @@ export class User {
     @Prop({ default: false })
     is_approved: boolean
 
-    @Prop({ default: false })
+    @Prop({ default: false, select: true })
     is_active: boolean
 
     @Prop({ select: false })

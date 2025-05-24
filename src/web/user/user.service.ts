@@ -33,6 +33,10 @@ export class UserService {
         return await this.userModel.findOne({ token: jwt });
     }
 
+    async getUserByJWTViaAuthGuard(jwt: string) {
+        return await this.userModel.findOne({ token: jwt }).select(["password"]).exec();
+    }
+
     async signUp(data: UserDto) {
 
         this.logger.log("User signin")
@@ -313,12 +317,14 @@ export class UserService {
     }
     async changePasswordSettings(user: User, data: UpdatePasswordDTO) {
 
+        log({user})
+
         const saltOrRounds = parseInt(process.env.BYCRYPT_SALT);
         const hash = await bcrypt.hash(data.password, saltOrRounds);
 
-        if (!await bcrypt.compare(data.old_password, user.password)) throw new ConflictException({ message: "Invalid password" });
+        if (!await bcrypt.compare(data.old_password, user.password)) throw new ConflictException({ message: "Your old password is invalid" });
 
-        await this.userModel.findByIdAndUpdate((<any>user).id, { password: hash })
+        await this.userModel.findByIdAndUpdate((<any>user).id, { password: hash });
 
         return {
             message: "Password change successfully"
@@ -363,6 +369,16 @@ export class UserService {
 
     async getNotificationMessages (user: User) {
         return await this.utilService.getNotifications(user.email)
+    }
+
+    async notifyCourier (courier: User) {
+
+        this.utilService.sendEmail(
+            `Hello ${courier.name}\n\nYour pickup delivery has been approved by the recipient.`, 
+            "Delivery Accepted !", 
+            courier.email, 
+            "location");
+
     }
 
 }

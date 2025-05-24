@@ -37,7 +37,7 @@ export class UserGuard implements CanActivate {
 
     if (token.length < 10) throw new UnauthorizedException({ message: "Authorization token is absent from header" })
 
-    const auth = await this.userService.getUserByJWT(token);
+    const auth = await this.userService.getUserByJWTViaAuthGuard(token);
 
     if (!auth) throw new NotFoundException({ message: "Please login" })
 

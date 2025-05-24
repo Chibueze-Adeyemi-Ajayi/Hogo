@@ -83,6 +83,9 @@ export class Delivery {
 
     @Prop()
     price: string
+
+    @Prop()
+    delivery_evidence: string
 }
 
 export const DeliverySchema = SchemaFactory.createForClass(Delivery);

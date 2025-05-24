@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UserGuard, JwtAuthGuard } from '../auth/auth.guards/auth.guard';
 import { ToogleDeliveryDTO } from '../user/user.dto/user.dto';
@@ -25,6 +25,12 @@ export class DeliveryController {
     @ApiParam({ name: 'sessionId', type: 'string', example: "8e4a4afb-e87d-4620-b0a7-510d1cfe572a", description: 'Session ID of the delivery sent to email', required: true })
     async recipientViewDelivery(@Param("sessionId") sessionId: string) {
         return await this.deliveryService.recipientViewDelivery(sessionId)
+    }
+
+    @Patch("recipient/accept-delivery/:sessionId")
+    @ApiParam({ name: 'sessionId', type: 'string', example: "8e4a4afb-e87d-4620-b0a7-510d1cfe572a", description: 'Session ID of the delivery sent to email', required: true })
+    async confirmDeliverySubmission (@Param("sessionId") sessionId: string) {
+        return await this.deliveryService.confirmDeliverySubmission(sessionId);
     }
 
     // @Get("recipient/all-deliveries/:email")

@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Inject, Param, Patch, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { Body, Controller, FileTypeValidator, Get, Inject, MaxFileSizeValidator, Param, ParseFilePipe, Patch, Post, Query, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { AuthUser } from '../auth/auth.decorators/auth.decorator';
 import { CourierService } from './courier.service';
 import { User } from '../user/user.schema/user.schema';
 import { JwtAuthGuard, UserGuard } from '../auth/auth.guards/auth.guard';
 import { CourierOnDutyModeDTO } from './courier.dto/courier.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadFileDto } from '../user/user.dto/user.dto';
 
 @Controller('courier')
 @ApiBearerAuth("JWT-auth")
@@ -56,8 +58,26 @@ export class CourierController {
     }
 
     @Patch("toogle/duty-mode")
-    async toggleOnDutyMode (@Body() data: CourierOnDutyModeDTO, @AuthUser() courier: User) {
+    async toggleOnDutyMode(@Body() data: CourierOnDutyModeDTO, @AuthUser() courier: User) {
         return await this.courierService.toggleOnDutyMode(data, courier)
+    }
+
+    @Post("submit/pick-up/:sessionId")
+    @UseInterceptors(FileInterceptor('file'))
+    @ApiConsumes('multipart/form-data') // Indicates that the endpoint consumes multipart/form-data
+    @ApiBody({
+        required: true,
+        description: 'The delivery evidence as picture file (max 5MB, image types only)',
+        type: UploadFileDto
+    })
+    @ApiParam({ name: 'sessionId', type: 'string', example: "8e4a4afb-e87d-4620-b0a7-510d1cfe572a", description: 'Session ID of the delivery sent to email', required: true })
+    async submitPickup(@Param("sessionId") sessionId: string, @AuthUser() courier: User, @UploadedFile(new ParseFilePipe({
+        validators: [
+            new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }),
+            new FileTypeValidator({ fileType: 'image/*' }),
+        ]
+    })) file: Express.Multer.File) {
+        return await this.courierService.submitPickup(sessionId, courier, file);
     }
 
 }
