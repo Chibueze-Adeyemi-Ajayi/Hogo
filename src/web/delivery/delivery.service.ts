@@ -364,12 +364,22 @@ export class DeliveryService {
                 .exec();
 
             const total = await this.deliveryModel.countDocuments(mongoQuery);
+
+            const response_data = [];
+            for (const delivery of deliveries) {
+                let tracking = await this.trackingModel.findOne({ delivery: delivery.id });
+                let data = { delivery };
+                data["sessionId"] = tracking ? tracking.sessionId : null;
+                response_data.push(data)
+            }
+            
             return {
-                deliveries,
+                deliveries: response_data,
                 page,
                 limit,
                 total,
             };
+
         } catch (error) {
             console.error("Error fetching deliveries:", error);
             throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
