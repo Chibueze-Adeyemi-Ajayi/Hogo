@@ -1,6 +1,6 @@
 import { ConflictException, Inject, Injectable, Logger, NotAcceptableException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ChangePasswordDTO, RequestOTP, ToogleDeliveryDTO, UpdatePasswordDTO, UpdateUserDto, UserDto, UserSignInDTO, ValidateOTP } from './user.dto/user.dto';
+import { ChangePasswordDTO, RequestOTP, ToogleDeliveryDTO, UpdatePasswordDTO, UpdateUserDto, UserAccountStatusUpdateDTO, UserDto, UserSignInDTO, ValidateOTP } from './user.dto/user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './user.schema/user.schema';
 import { Model, Types } from 'mongoose';
@@ -15,6 +15,7 @@ import { NotificationDocument, Notification } from './user.schema/user.notificat
 import { NotificationDto } from './user.dto/user.notification.dto';
 import { CourierOnDutyModeDTO } from '../courier/courier.dto/courier.dto';
 import { MicrosoftAzureService } from 'src/third-party/microsoft-azure/microsoft-azure.service';
+import { LoginHistory, LoginHistoryDocument } from './user.schema/login.history.schema';
 
 @Injectable()
 export class UserService {
@@ -27,6 +28,7 @@ export class UserService {
         @InjectModel(UserOTP.name) private readonly userOTPModel: Model<UserOTPDocument>,
         @InjectModel(Recipient.name) private readonly recipientModel: Model<RecipientDocument>,
         @InjectModel(Notification.name) private readonly notificationModel: Model<NotificationDocument>,
+        @InjectModel(LoginHistory.name) private readonly loginHistoryModel: Model<LoginHistoryDocument>,
     ) { }
 
     async getUserByJWT(jwt: string) {
@@ -34,7 +36,7 @@ export class UserService {
     }
 
     async getUserByJWTViaAuthGuard(jwt: string) {
-        return await this.userModel.findOne({ token: jwt }).select(["password"]).exec();
+        return await this.userModel.findOne({ token: jwt }).select(["password", "admin_id"]).exec();
     }
 
     async signUp(data: UserDto) {
@@ -42,7 +44,9 @@ export class UserService {
         this.logger.log("User signin")
 
         if (data.admin_id) {
-            if (data.admin_id != process.env.ADMIN_ID) throw new UnauthorizedException({ message: "Incorrect Admin ID" });
+            if (data.role.toLowerCase() == "support-staff") {
+                if (data.admin_id != process.env.SUPPORT_STAFF_ADMIN_ID) throw new UnauthorizedException({ message: "You just entered the wrong Admin ID for a support staff" });
+            } else if (data.admin_id != process.env.ADMIN_ID) throw new UnauthorizedException({ message: "Incorrect Admin ID" });
         }
 
         let existing_email = await this.userModel.findOne({ email: data.email });
@@ -106,7 +110,18 @@ export class UserService {
 
         let new_user = await this.userModel.findById(user.id).select(["password", "token"]).exec();
 
+        if (data.admin_id) {
+            if (new_user.role.toLowerCase() == "support-staff") {
+                if (data.admin_id != process.env.SUPPORT_STAFF_ADMIN_ID) throw new UnauthorizedException({ message: "You just entered the wrong Admin ID for a support staff" });
+            } else {
+                if (data.admin_id != process.env.ADMIN_ID) throw new UnauthorizedException({ message: "Incorrect Admin ID" });
+            }
+        }
+
         delete new_user["password"];
+
+        let loginHistory = new this.loginHistoryModel({ user: new_user });
+        await loginHistory.save();
 
         return {
             message: "Login successful",
@@ -292,10 +307,31 @@ export class UserService {
             data: await this.userModel.findById((<any>user).id)
         }
     }
+    async updateProfileSupportStaff(id: string, data: UpdateUserDto) {
+        let updated_user = await this.userModel.findByIdAndUpdate(id, data);
+        if (!updated_user) throw new ConflictException({ message: "Error updating the user profile" });
+        return {
+            message: "Profile update successfully",
+            data: await this.getUser(id)
+        }
+    }
     async viewProfile(user: User) {
         return {
             data: await this.userModel.findById((<any>user).id),
             notification: await this.notificationModel.findOne({ "user": new Types.ObjectId((<any>user).id.toString()) })
+        }
+    }
+    async getUser(id: string) {
+        let user = await this.userModel.findById(id).select(['name', 'email', 'profile_pics', 'department', 'role', 'phone_number', 'staff_number', 'admin_id', 'is_verified', 'is_approved', 'is_active']).exec();
+        if (!user) throw new NotFoundException({ message: "User not found" });
+        let history = await this.loginHistoryModel.find({ user: id });
+        return { user, history };
+    }
+    async toggleAccountStatus(id: string, data: UserAccountStatusUpdateDTO) {
+        if (!await this.userModel.findByIdAndUpdate(id, data)) throw new ConflictException({ message: "Action not successful" });
+        return {
+            message: "Action successful",
+            data: await this.getUser(id)
         }
     }
     async stackNotification(userId: string) {
@@ -317,7 +353,7 @@ export class UserService {
     }
     async changePasswordSettings(user: User, data: UpdatePasswordDTO) {
 
-        log({user})
+        log({ user })
 
         const saltOrRounds = parseInt(process.env.BYCRYPT_SALT);
         const hash = await bcrypt.hash(data.password, saltOrRounds);
@@ -330,7 +366,7 @@ export class UserService {
             message: "Password change successfully"
         }
     }
-    async updateNotificationSettings (user: User, data: NotificationDto) {
+    async updateNotificationSettings(user: User, data: NotificationDto) {
 
         let idObj = new Types.ObjectId((<any>user).id.toString());
         // log({ idObj })
@@ -345,40 +381,136 @@ export class UserService {
 
     }
 
-    async toggleIsActiveMode (data: CourierOnDutyModeDTO, user: User) {
+    async toggleIsActiveMode(data: CourierOnDutyModeDTO, user: User) {
         let fetched_user = await this.userModel.findById((<any>user).id);
-        if (!fetched_user) throw new NotFoundException({message: "User not found, please login again"});
+        if (!fetched_user) throw new NotFoundException({ message: "User not found, please login again" });
         fetched_user.is_active = data.is_active;
         await fetched_user.save();
         return {
-            message:"Update successful",
+            message: "Update successful",
             data: await this.userModel.findById((<any>user).id)
         }
     }
 
-    async getActiveUsers (clause) {
-        return await this.userModel.find({ ... clause, is_active: true });
+    async topCouriers() {
+        const latestDeliveries = await this.userModel
+            .find({ role: "Courier" }) // Use the determined field
+            .select(["total_delivery"])
+            .sort({ total_delivery: -1 })
+            .limit(10)
+            .exec();
+        return latestDeliveries;
     }
 
-    async uploadProfilePicture (user: User, file: Express.Multer.File) {
+    async allActiveUsers(role: string) {
+        return await this.userModel.countDocuments({ role, is_active: true }).exec()
+    }
+
+    async getActiveUsers(clause) {
+        return await this.userModel.find({ ...clause, is_active: true });
+    }
+
+    async uploadProfilePicture(user: User, file: Express.Multer.File) {
         let data = await this.microsoftAzureService.uploadFiles([file]);
         let { url } = data[0];
-        await this.userModel.findByIdAndUpdate((<any> user).id, { profile_pics: url });
-        return await this.userModel.findById((<any> user).id);
+        await this.userModel.findByIdAndUpdate((<any>user).id, { profile_pics: url });
+        return await this.userModel.findById((<any>user).id);
     }
 
-    async getNotificationMessages (user: User) {
+    async getNotificationMessages(user: User) {
         return await this.utilService.getNotifications(user.email)
     }
 
-    async notifyCourier (courier: User) {
+    async notifyCourier(courier: User) {
+
+        let user = await this.userModel.findById((<any>courier).id).select(["total_delivery"]).exec();
+
+        if (!user) throw new NotFoundException({message: "Couldn't find this courier, please try again"});
+
+        user.total_delivery = user.total_delivery + 1;
+        user.save();
 
         this.utilService.sendEmail(
-            `Hello ${courier.name}\n\nYour pickup delivery has been approved by the recipient.`, 
-            "Delivery Accepted !", 
-            courier.email, 
+            `Hello ${courier.name}\n\nYour pickup delivery has been approved by the recipient.`,
+            "Delivery Accepted !",
+            courier.email,
             "location");
 
+    }
+
+    async getAllUsers(query: any) {
+
+        const {
+            page = 1,
+            limit = 10,
+            sort = true,
+            date_filter_type,
+            from_date,
+            to_date,
+            status,
+            active,
+            query: searchQuery
+        } = query;
+
+        // log({ query })
+
+        const skip = (page - 1) * limit;
+        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
+
+        const mongoQuery: any = {}; // Filter by cancellation status
+
+        // Date filtering
+        if (date_filter_type && from_date && to_date) {
+            const dateField = date_filter_type === true ? 'createdAt' : 'delivery_date';
+            mongoQuery[dateField] = {
+                $gte: new Date(from_date),
+                $lte: new Date(to_date),
+            };
+        }
+
+        // Full-text search
+        if (searchQuery) {
+            mongoQuery.$or = [
+                { 'name': { $regex: searchQuery, $options: 'i' } },
+                { 'email': { $regex: searchQuery, $options: 'i' } },
+                { 'department': { $regex: searchQuery, $options: 'i' } },
+                { 'role': { $regex: searchQuery, $options: 'i' } },
+                { 'phone_number': { $regex: searchQuery, $options: 'i' } },
+                { 'staff_number': { $regex: searchQuery, $options: 'i' } },
+                { 'admin_id': { $regex: searchQuery, $options: 'i' } },
+            ];
+        }
+
+        if (status) {
+            mongoQuery.is_approved = status;
+        }
+
+        if (active) {
+            mongoQuery.is_active = active;
+        }
+
+        log(mongoQuery)
+
+        try {
+            const users = await this.userModel
+                .find(mongoQuery)
+                .skip(skip)
+                .limit(limit)
+                .select(['name', 'email', 'department', 'role', 'phone_number', 'staff_number', 'admin_id', 'is_verified', 'is_approved', 'is_active'])
+                .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
+                .exec();
+
+            const total = await this.userModel.countDocuments(mongoQuery);
+            return {
+                users,
+                page,
+                limit,
+                total,
+            };
+        } catch (error) {
+            console.error("Error fetching users:", error);
+            throw new NotFoundException({ message: "Failed to retrieve users" }); // Or handle the error as needed
+        }
     }
 
 }

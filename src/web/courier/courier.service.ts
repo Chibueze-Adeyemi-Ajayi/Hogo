@@ -30,12 +30,15 @@ export class CourierService {
         if (courier.role.toLowerCase().trim() != "courier") throw new UnauthorizedException({ message: "Account type is not a courier" })
         return await this.userService.toggleIsActiveMode(data, courier);
     }
+    async allActiveCourier() {
+        return await this.userService.allActiveUsers("Courier");
+    }
     async submitPickup(sessionId: string, courier: User, file: Express.Multer.File) {
         // log({file})
         let delivery = await this.deliveryService.viewDeliveryBySessionId(sessionId);
         // log({delivery})
         let data = await this.microsoftAzureService.uploadFiles([file]);
-        let { url } = data[0]; 
+        let { url } = data[0];
 
         if (!await this.deliveryService.submitDeliveryAfterPickup({
             delivery_evidence: url,

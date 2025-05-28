@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsNotEmpty, IsEmail, IsOptional, Length, IsBoolean } from "class-validator";
+import { IsString, IsNotEmpty, IsEmail, IsOptional, Length, IsBoolean, IsNumber } from "class-validator";
 
 export class UserDto {
 
@@ -81,15 +81,15 @@ export class UpdateUserDto {
   @IsNotEmpty()
   name: string;
 
-  // @ApiProperty({
-  //   description: "User's email",
-  //   example: "john@doe.com",
-  //   required: false
-  // })
-  // @IsOptional()
-  // @IsEmail()
-  // @IsNotEmpty()
-  // email: string;
+  @ApiProperty({
+    description: "User's email",
+    example: "john@doe.com",
+    required: false
+  })
+  @IsOptional()
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 
   @ApiProperty({
     description: "User's department",
@@ -124,7 +124,7 @@ export class UpdateUserDto {
   @ApiProperty({
     description: "User's staff number",
     example: "SN12345",
-    required:false
+    required: false
   })
   @IsOptional()
   @IsString()
@@ -159,13 +159,15 @@ export class UserSignInDTO {
   @IsNotEmpty()
   email: string;
 
-  //   @ApiProperty({
-  //     description: "User's email",
-  //     example: "john@doe.com",
-  //   })
-  //   @IsEmail()
-  //   @IsNotEmpty()
-  //   role: string;
+  @ApiProperty({
+    description: "Admin ID",
+    required: false,
+    example: "support staff: 5678 - other admins: 1234",
+  })
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  admin_id: string;
 
 }
 
@@ -259,4 +261,64 @@ export class ToogleDeliveryDTO {
 export class UploadFileDto {
   @ApiProperty({ type: 'string', format: 'binary', description: 'The file to upload' })
   file: Express.Multer.File;
+}
+
+export class UserAccountStatusUpdateDTO {
+  @ApiProperty({
+    description: 'The status of the account either true or false',
+    example: true,
+  })
+  @IsBoolean()
+  is_approved: string
+}
+
+export class UserQueryDto {
+  @ApiProperty({
+    description: 'The full name of the user',
+    example: 'John Doe',
+    minLength: 3,
+  })
+  @IsString()
+  @Length(3)
+  name: string;
+
+  @ApiProperty({
+    description: 'The email address of the user',
+    example: 'john.doe@example.com',
+    format: 'email',
+  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    description: 'The department the user belongs to',
+    example: 'Lab C1',
+  })
+  @IsString()
+  department: string;
+
+  @ApiProperty({
+    description: 'The role of the user within the organization',
+    example: 'Courier',
+  })
+  @IsString()
+  role: string;
+
+  @ApiProperty({
+    description: 'The phone number of the user',
+    example: '+1234567890',
+    minLength: 8,
+  })
+  @IsString()
+  phone_number: string;
+
+  @ApiProperty({
+    description: 'The staff number of the user',
+    example: 'SN12345',
+    minLength: 3,
+  })
+  @IsString()
+  @Length(3)
+  staff_number: string;
+
 }

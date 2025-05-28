@@ -10,6 +10,7 @@ import { Recipient, RecipientSchema } from './user.schema/recipient.schema';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { NotificationSchema, Notification } from './user.schema/user.notification.schema';
 import { MicrosoftAzureModule } from 'src/third-party/microsoft-azure/microsoft-azure.module';
+import { LoginHistory, LoginHistorySchema } from './user.schema/login.history.schema';
 
 @Module({
   controllers: [UserController],
@@ -19,7 +20,8 @@ import { MicrosoftAzureModule } from 'src/third-party/microsoft-azure/microsoft-
       { name: User.name, schema: UserSchema },
       { name: UserOTP.name, schema: UserOTPSchema },
       { name: Recipient.name, schema: RecipientSchema },
-      { name: Notification.name, schema: NotificationSchema }
+      { name: Notification.name, schema: NotificationSchema },
+      { name: LoginHistory.name, schema: LoginHistorySchema }
     ]),
     JwtModule,
     UtilsModule,

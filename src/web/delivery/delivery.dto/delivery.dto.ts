@@ -61,9 +61,15 @@ export class CreateDeliveryDTO {
 
     @ApiProperty({
         // required: false,
-        description: "Distance in KM",
+        description: "Distance in Miles",
         example: "765"
     }) @IsString() distance: string
+
+    @ApiProperty({
+        // required: false,
+        description: "The price of the delivery",
+        example: "1000"
+    }) @IsString() price: string
 
     @ApiProperty({
         // required: false,

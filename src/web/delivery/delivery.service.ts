@@ -97,7 +97,7 @@ export class DeliveryService {
         if (!delivery) throw new NotFoundException({ message: "Delivery not found" })
         let update = await this.deliveryModel.findByIdAndUpdate(id, data);
         // forward email
-        let receiver = delivery.recipient.email, url = process.env.BASE_URL + "/accept/delivery-submission/" + sessionId;
+        let receiver = delivery.recipient.email, url = process.env.BASE_URL + "/recipient/" + sessionId;
         const msg = `Hello \n\Your delivery is available for you to pickup from the courier, use this link to confirm ${url}`;
         this.utilService.sendEmail(msg, "Delivery Alert !", receiver, "location");
         return update;
@@ -563,6 +563,203 @@ export class DeliveryService {
             weeklyDeliveries: weeklyCounts,
             latestDeliveries,
         };
+    }
+    async getDeliveryStatisticsForSupportStaff() {
+        // log({user})
+        const now = new Date();
+        const lastWeekStart = startOfWeek(subWeeks(now, 1), { locale: enUS });
+        const lastWeekEnd = endOfWeek(subWeeks(now, 1), { locale: enUS });
+
+        // Helper function to get counts with optional date range
+        const getCounts = async (match: any = {}) => {
+            return {
+                total: await this.deliveryModel.countDocuments({  ...match }).exec(),
+                pending: await this.deliveryModel
+                    .countDocuments({  ...match, status: 'pending' })
+                    .exec(),
+                active: await this.deliveryModel
+                    .countDocuments({  ...match, status: 'in-transit' })
+                    .exec(),
+                delivered: await this.deliveryModel
+                    .countDocuments({  ...match, status: 'delivered' })
+                    .exec(),
+                cancelled: await this.deliveryModel
+                    .countDocuments({...match, isCancelled: true })
+                    .exec(),
+                'active-couriers': await this.courierService.allActiveCourier()
+            };
+        };
+
+        // Get current counts
+        const currentCounts = await getCounts();
+
+        // Get counts for the previous week
+        const previousCounts = await getCounts({
+            createdAt: { $gte: lastWeekStart, $lte: lastWeekEnd },
+        });
+
+        // Calculate percentage changes
+        const calculatePercentageChange = (current: number, previous: number) => {
+            if (previous === 0) return current === 0 ? 0 : 100;
+            const change = ((current - previous) / previous) * 100;
+            return Math.min(change, 100);
+        };
+
+        const percentageChanges = {
+            total: calculatePercentageChange(currentCounts.total, previousCounts.total),
+            pending: calculatePercentageChange(currentCounts.pending, previousCounts.pending),
+            active: calculatePercentageChange(currentCounts.active, previousCounts.active),
+            delivered: calculatePercentageChange(currentCounts.delivered, previousCounts.delivered),
+            cancelled: calculatePercentageChange(currentCounts.cancelled, previousCounts.cancelled),
+        };
+
+        // Get deliveries by time range
+        const getDeliveriesByTimeRange = async (startDate: Date, endDate: Date) => {
+            return this.deliveryModel
+                .find({
+                    createdAt: { $gte: startDate, $lte: endDate },
+                })
+                .exec();
+        };
+
+        const getDeliveriesCountByTimeRange = async (startDate: Date, endDate: Date) => {
+            return this.deliveryModel.countDocuments({
+                createdAt: { $gte: startDate, $lte: endDate },
+            }).exec();
+        };
+
+        // Yearly deliveries for the past 12 months
+        const yearlyDeliveries = eachMonthOfInterval({
+            start: subMonths(now, 11),
+            end: now,
+        }).map(async (date) => {
+            const monthEnd = endOfMonth(date);
+            const count = await getDeliveriesCountByTimeRange(date, monthEnd);
+            return { month: format(date, 'MMMM', { locale: enUS }), count };
+        });
+
+        // Monthly deliveries
+        const monthlyDeliveries = eachDayOfInterval({ start: startOfMonth(now), end: endOfMonth(now) }).map(async (date) => {
+            const dayEnd = addDays(date, 1);
+            const count = await getDeliveriesCountByTimeRange(date, dayEnd);
+            return { day: format(date, 'yyyy-MM-dd', { locale: enUS }), count };
+        });
+
+        // Weekly deliveries
+        const weeklyDeliveries = eachDayOfInterval({
+            start: startOfWeek(now, { locale: enGB }),
+            end: endOfWeek(now, { locale: enGB }),
+        }).map(async (date) => {
+            const dayEnd = addDays(date, 1);
+            const count = await getDeliveriesCountByTimeRange(date, dayEnd);
+            console.log(`Debug: Date: ${format(date, 'yyyy-MM-dd', { locale: enUS })}`);
+            return {
+                day: format(date, 'EEEE', { locale: enUS }),
+                date: format(date, 'yyyy-MM-dd', { locale: enUS }),
+                count,
+            };
+        });
+
+        const [yearlyCounts, monthlyCounts, weeklyCounts] = await Promise.all([
+            Promise.all(yearlyDeliveries),
+            Promise.all(monthlyDeliveries),
+            Promise.all(weeklyDeliveries),
+        ]);
+
+        // Get latest 10 deliveries
+        const latestDeliveries = await this.deliveryModel
+            .find() // Use the determined field
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .populate(['dispatcher', 'courier'])
+            .exec();
+
+        const topCouriers = await this.userService.topCouriers();
+
+        return {
+            counts: currentCounts,
+            percentageChanges,
+            yearlyDeliveries: yearlyCounts,
+            monthlyDeliveries: monthlyCounts,
+            weeklyDeliveries: weeklyCounts,
+            latestDeliveries,
+            topCouriers
+        };
+    }
+    async viewAllDeliverySupportStaff(query: DeliveryQueryDTO) {
+
+        const {
+            page = 1,
+            limit = 10,
+            sort = true,
+            canceled,
+            date_filter_type,
+            from_date,
+            to_date,
+            status,
+            query: searchQuery
+        } = query;
+
+        log({ query })
+
+        const skip = (page - 1) * limit;
+        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
+
+        const mongoQuery: any = canceled ? { isCancelled: canceled } : {}; // Filter by cancellation status
+
+        // Date filtering
+        if (date_filter_type && from_date && to_date) {
+            const dateField = date_filter_type === DateFilterType.CREATION_DATE ? 'createdAt' : 'delivery_date';
+            mongoQuery[dateField] = {
+                $gte: new Date(from_date),
+                $lte: new Date(to_date),
+            };
+        }
+
+        // Full-text search
+        if (searchQuery) {
+            mongoQuery.$or = [
+                { 'tracking_id': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_address': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_dept': { $regex: searchQuery, $options: 'i' } },
+                { 'pickup_staff_name': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_address': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_dept': { $regex: searchQuery, $options: 'i' } },
+                { 'dropoff_staff_name': { $regex: searchQuery, $options: 'i' } },
+                { 'location': { $regex: searchQuery, $options: 'i' } },
+                { 'recipient.email': { $regex: searchQuery, $options: 'i' } },
+                { 'recipient.phone_number_1': { $regex: searchQuery, $options: 'i' } },
+                { 'recipient.phone_number_2': { $regex: searchQuery, $options: 'i' } },
+            ];
+        }
+
+        if (status) {
+            mongoQuery.status = status;
+        }
+
+
+        log(mongoQuery)
+
+        try {
+            const deliveries = await this.deliveryModel
+                .find(mongoQuery)
+                .populate(["courier", "dispatcher"])
+                .skip(skip)
+                .limit(limit)
+                .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
+                .exec();
+
+            const total = await this.deliveryModel.countDocuments(mongoQuery);
+            return {
+                deliveries,
+                page,
+                limit,
+                total,
+            };
+        } catch (error) {
+            console.error("Error fetching deliveries:", error);
+            throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
+        }
     }
     async recipientViewDelivery(sessionId: string) {
         let tracking = await this.trackingModel.findOne({ sessionId }).populate(["delivery"]).exec();

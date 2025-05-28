@@ -36,6 +36,9 @@ export class User {
     @Prop({ default: false })
     is_verified: boolean
 
+    @Prop({ default: 0, select: false })
+    total_delivery: number
+
     @Prop({ default: false })
     is_approved: boolean
 
