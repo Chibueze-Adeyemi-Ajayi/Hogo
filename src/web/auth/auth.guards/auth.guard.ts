@@ -53,7 +53,7 @@ export class UserGuard implements CanActivate {
 }
 
 @Injectable()
-export class SupportStaffGuard implements CanActivate {
+export class AdminGuard implements CanActivate {
   constructor(private userService: UserService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -74,9 +74,10 @@ export class SupportStaffGuard implements CanActivate {
     if (!auth) throw new NotFoundException({ message: "Please login" })
       // log({auth})
 
-    if (auth.role.toLowerCase() != "support-staff") throw new UnauthorizedException({ message: "Only support staff can access this information" })
-    if (auth.role.toLowerCase() == "support-staff") {
-      if (auth.admin_id != process.env.SUPPORT_STAFF_ADMIN_ID) throw new UnauthorizedException({ message: "The support ADMIN Staff ID is not allowed" })
+    if (auth.role.toLowerCase() != "admin") throw new UnauthorizedException({ message: "Only Admins can access this information" });
+
+    if (auth.role.toLowerCase() == "admin") {
+      if (auth.admin_id != process.env.ADMIN_ID) throw new UnauthorizedException({ message: "The ADMIN Staff ID is not allowed" });
     }
 
     await this.userService.stackNotification(auth.id);

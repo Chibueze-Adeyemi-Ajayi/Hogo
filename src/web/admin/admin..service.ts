@@ -6,7 +6,7 @@ import { UserService } from '../user/user.service';
 import { UpdateUserDto, UserAccountStatusUpdateDTO } from '../user/user.dto/user.dto';
 
 @Injectable()
-export class AdminSupportStaffService {
+export class AdminService {
     constructor (
         @Inject() private readonly userService: UserService,
         @Inject() private readonly deliveryService: DeliveryService

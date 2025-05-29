@@ -1,23 +1,23 @@
 import { Body, Controller, Get, Inject, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard, SupportStaffGuard, UserGuard } from '../auth/auth.guards/auth.guard';
-import { AdminSupportStaffService } from './admin-support-staff.service';
+import { JwtAuthGuard, AdminGuard, UserGuard } from '../auth/auth.guards/auth.guard';
+import { AdminService } from './admin..service';
 import { AuthUser } from '../auth/auth.decorators/auth.decorator';
 import { User } from '../user/user.schema/user.schema';
 import { UpdateUserDto, UserAccountStatusUpdateDTO } from '../user/user.dto/user.dto';
 
-@Controller('admin-support-staff')
+@Controller('admin')
 @ApiBearerAuth("JWT-auth")
 @UseGuards(JwtAuthGuard)
-@UseGuards(SupportStaffGuard)
+@UseGuards(AdminGuard)
 @UseGuards(UserGuard)
-export class AdminSupportStaffController {
+export class AdminController {
     constructor(
-        @Inject() private readonly adminSupportStaffService: AdminSupportStaffService
+        @Inject() private readonly adminService: AdminService
     ) { }
     @Get("dashboard")
     async dashboard(@AuthUser() user: User) {
-        return await this.adminSupportStaffService.dashboard(user);
+        return await this.adminService.dashboard(user);
     }
     @Get("deliveries")
     @ApiQuery({ name: 'query', required: false, type: 'string', description: 'The search parameter - tracking_id, addresses, courier, location, recipient (email & phone number) (optional)', example: 'ORD0009' })
@@ -30,7 +30,7 @@ export class AdminSupportStaffController {
     @ApiQuery({ name: 'from_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-04-29T19:25:16.546Z' })
     @ApiQuery({ name: 'to_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-09-29T19:25:16.546Z' })
     async deliveries(@AuthUser() user: User, @Query() query: any) {
-        return await this.adminSupportStaffService.deliveries(user, query);
+        return await this.adminService.deliveries(user, query);
     }
     @Get("users")
     @ApiQuery({ name: 'query', required: false, type: 'string', description: 'The search parameter - name, email, role, department, phone number, staff_number, admin_id (optional)', example: 'John' })
@@ -44,12 +44,12 @@ export class AdminSupportStaffController {
     @ApiQuery({ name: 'from_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-04-29T19:25:16.546Z' })
     @ApiQuery({ name: 'to_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-09-29T19:25:16.546Z' })
     async users(@AuthUser() user: User, @Query() query: any) {
-        return await this.adminSupportStaffService.users(user, query);
+        return await this.adminService.users(user, query);
     }
     @Get("user/:userId")
     @ApiParam({ name: 'userId', type: 'string', description: 'ID of the user', required: true, example: "6823bbe1580a03248d1c205c" })
     async getUser(@Param("userId") id: string) {
-        return await this.adminSupportStaffService.getUser(id)
+        return await this.adminService.getUser(id)
     }
     // @Patch("user/toggle-account/:userId")
     // @ApiParam({ name: 'userId', type: 'string', description: 'ID of the user', required: true, example: "6823bbe1580a03248d1c205c" })

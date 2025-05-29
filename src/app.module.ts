@@ -14,7 +14,7 @@ import { CourierModule } from './web/courier/courier.module';
 import { UserModule } from './web/user/user.module';
 import { TrackerModule } from './gateway/tracker/tracker.module';
 import { MicrosoftAzureModule } from './third-party/microsoft-azure/microsoft-azure.module';
-import { AdminSupportStaffModule } from './web/admin-support-staff/admin-support-staff.module';
+import { AdminSupportStaffModule } from './web/admin/admin.module';
 
 @Module({
   imports: [
