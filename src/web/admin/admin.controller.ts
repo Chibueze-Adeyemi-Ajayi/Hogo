@@ -51,23 +51,23 @@ export class AdminController {
     async getUser(@Param("userId") id: string) {
         return await this.adminService.getUser(id)
     }
-    // @Patch("user/toggle-account/:userId")
-    // @ApiParam({ name: 'userId', type: 'string', description: 'ID of the user', required: true, example: "6823bbe1580a03248d1c205c" })
-    // async toggleAccountStatus (@Param("userId") id: string, @Body() data: UserAccountStatusUpdateDTO) {
-    //     return await this.adminSupportStaffService.toggleAccountStatus(id, data);
-    // }
-    // @Patch("user/update-profile/:userId")
-    // @ApiParam({ name: 'userId', type: 'string', description: 'ID of the user', required: true, example: "6823bbe1580a03248d1c205c" })
-    // async updateProfileSupportStaff(@Param("userId") id: string, @Body() data: UpdateUserDto) {
-    //     return await this.adminSupportStaffService.updateProfileSupportStaff(id, data);
-    // }
-    // @Get("view/profile")
-    // async viewProfile(@AuthUser() user: User) {
-    //     return this.adminSupportStaffService.viewProfile(user);
-    // }
-    // @Patch("update/profile")
-    // async updateProfile(@AuthUser() user: User, @Body() data: UpdateUserDto) {
-    //     return await this.adminSupportStaffService.updateProfile(user, data);
-    // }
+    @Patch("user/toggle-account/:userId")
+    @ApiParam({ name: 'userId', type: 'string', description: 'ID of the user', required: true, example: "6823bbe1580a03248d1c205c" })
+    async toggleAccountStatus (@Param("userId") id: string, @Body() data: UserAccountStatusUpdateDTO) {
+        return await this.adminService.toggleAccountStatus(id, data);
+    }
+    @Patch("user/update-profile/:userId")
+    @ApiParam({ name: 'userId', type: 'string', description: 'ID of the user', required: true, example: "6823bbe1580a03248d1c205c" })
+    async updateProfileSupportStaff(@Param("userId") id: string, @Body() data: UpdateUserDto) {
+        return await this.adminService.updateProfileSupportStaff(id, data);
+    }
+    @Get("view/profile")
+    async viewProfile(@AuthUser() user: User) {
+        return this.adminService.viewProfile(user);
+    }
+    @Patch("update/profile")
+    async updateProfile(@AuthUser() user: User, @Body() data: UpdateUserDto) {
+        return await this.adminService.updateProfile(user, data);
+    }
 
 }
