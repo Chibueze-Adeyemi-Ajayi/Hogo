@@ -496,7 +496,7 @@ export class UserService {
                 .find(mongoQuery)
                 .skip(skip)
                 .limit(limit)
-                .select(['name', 'email', 'department', 'role', 'phone_number', 'staff_number', 'admin_id', 'is_verified', 'is_approved', 'is_active'])
+                .select(['name', 'email', 'department', 'role', 'phone_number', 'staff_number', 'admin_id', 'is_verified', 'is_approved', 'is_active', "createdAt", "updatedAt"])
                 .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
                 .exec();
 
