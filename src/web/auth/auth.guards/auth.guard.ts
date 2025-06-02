@@ -111,9 +111,9 @@ export class SupportAgentGuard implements CanActivate {
     if (!auth) throw new NotFoundException({ message: "Please login" })
       // log({auth})
 
-    if (auth.role.toLowerCase() != "support-staff") throw new UnauthorizedException({ message: "Only support agent can access this information" });
+    if (auth.role.toLowerCase() != "supportstaff") throw new UnauthorizedException({ message: "Only support agent can access this information" });
 
-    if (auth.role.toLowerCase() == "support-staff") {
+    if (auth.role.toLowerCase() == "supportstaff") {
       if (auth.admin_id != process.env.SUPPORT_STAFF_ADMIN_ID) throw new UnauthorizedException({ message: "The support agent ID is not allowed" });
     }
 
