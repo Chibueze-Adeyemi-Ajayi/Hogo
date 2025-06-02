@@ -50,7 +50,7 @@ export class UserService {
         this.logger.log("User signin")
 
         if (data.admin_id) {
-            if (data.role.toLowerCase() == "support-staff") {
+            if (data.role.toLowerCase() == "supportstaff") {
                 if (data.admin_id != process.env.SUPPORT_STAFF_ADMIN_ID) throw new UnauthorizedException({ message: "You just entered the wrong Admin ID for a support staff" });
             } else if (data.admin_id != process.env.ADMIN_ID) throw new UnauthorizedException({ message: "Incorrect Admin ID" });
         }
@@ -117,7 +117,7 @@ export class UserService {
         let new_user = await this.userModel.findById(user.id).select(["password", "token"]).exec();
 
         if (data.admin_id) {
-            if (new_user.role.toLowerCase() == "support-staff") {
+            if (new_user.role.toLowerCase() == "supportstaff") {
                 if (data.admin_id != process.env.SUPPORT_STAFF_ADMIN_ID) throw new UnauthorizedException({ message: "You just entered the wrong Admin ID for a support staff" });
             } else {
                 if (data.admin_id != process.env.ADMIN_ID) throw new UnauthorizedException({ message: "Incorrect Admin ID" });
