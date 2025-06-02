@@ -5,6 +5,7 @@ import { AdminService } from './admin..service';
 import { AuthUser } from '../auth/auth.decorators/auth.decorator';
 import { User } from '../user/user.schema/user.schema';
 import { UpdateUserDto, UserAccountStatusUpdateDTO } from '../user/user.dto/user.dto';
+import { AdminNotificationDto } from '../user/user.dto/user.notification.dto';
 
 @Controller('admin')
 @ApiBearerAuth("JWT-auth")
@@ -34,6 +35,7 @@ export class AdminController {
     }
     @Get("users")
     @ApiQuery({ name: 'query', required: false, type: 'string', description: 'The search parameter - name, email, role, department, phone number, staff_number, admin_id (optional)', example: 'John' })
+    @ApiQuery({ name: 'role', required: false, type: 'string', description: 'Roles of the user', example: "Courier" })
     @ApiQuery({ name: 'status', required: false, type: 'boolean', description: 'Select if the user has been approved (optional)', example: true })
     @ApiQuery({ name: 'active', required: false, type: 'boolean', description: 'Select if the user is active (optional)', example: true })
     @ApiQuery({ name: 'page', required: false, type: 'number', description: 'The current page for the pagination (optional)', example: 1 })
@@ -69,5 +71,13 @@ export class AdminController {
     async updateProfile(@AuthUser() user: User, @Body() data: UpdateUserDto) {
         return await this.adminService.updateProfile(user, data);
     }
-
+    @Patch("update/notification/settings")
+    async updateNotification (@AuthUser() user: User, @Body() data: AdminNotificationDto) {
+        return await this.adminService.updateNotification(user, data)
+    }
+    @Get("view/delivery/:tracking_id")
+    @ApiParam({ name: 'tracking_id', type: 'string', description: 'Tracking ID', required: true, example: "ORD0041" })
+    async viewDelivery (@Param("tracking_id") tracking_id: string) {
+        return await this.adminService.viewDelivery(tracking_id)
+    }
 }

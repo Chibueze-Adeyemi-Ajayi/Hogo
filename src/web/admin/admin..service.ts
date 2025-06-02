@@ -4,6 +4,7 @@ import { DeliveryService } from '../delivery/delivery.service';
 import { DeliveryQueryDTO } from '../delivery/delivery.dto/delivery.dto';
 import { UserService } from '../user/user.service';
 import { UpdateUserDto, UserAccountStatusUpdateDTO } from '../user/user.dto/user.dto';
+import { AdminNotificationDto } from '../user/user.dto/user.notification.dto';
 
 @Injectable()
 export class AdminService {
@@ -12,7 +13,7 @@ export class AdminService {
         @Inject() private readonly deliveryService: DeliveryService
     ) {}
     async dashboard (user: User) {
-        return await this.deliveryService.getDeliveryStatisticsForSupportStaff();
+        return await this.deliveryService.getDeliveryStatisticsForAdmin();
     }
     async deliveries (user: User, query: DeliveryQueryDTO) {
         return await this.deliveryService.viewAllDeliverySupportStaff(query)
@@ -35,5 +36,11 @@ export class AdminService {
     }
     async viewProfile(user: User) {
         return await this.userService.viewProfile(user)
+    }
+    async updateNotification (user: User, data: AdminNotificationDto) {
+        return await this.userService.updateAdminNotificationSettings(user, data);
+    }
+    async viewDelivery (tracking_id: string) {
+        return await this.deliveryService.viewDelivery(tracking_id);
     }
 }

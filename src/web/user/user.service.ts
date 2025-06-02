@@ -12,10 +12,11 @@ import { Delivery } from '../delivery/delivery.schema/delivery.schema';
 import { Recipient, RecipientDocument } from './user.schema/recipient.schema';
 import { log } from 'console';
 import { NotificationDocument, Notification } from './user.schema/user.notification.schema';
-import { NotificationDto } from './user.dto/user.notification.dto';
+import { AdminNotificationDto, NotificationDto } from './user.dto/user.notification.dto';
 import { CourierOnDutyModeDTO } from '../courier/courier.dto/courier.dto';
 import { MicrosoftAzureService } from 'src/third-party/microsoft-azure/microsoft-azure.service';
 import { LoginHistory, LoginHistoryDocument } from './user.schema/login.history.schema';
+import { AdminNotification } from './user.schema/user.admin.notification.schema';
 
 @Injectable()
 export class UserService {
@@ -29,6 +30,7 @@ export class UserService {
         @InjectModel(Recipient.name) private readonly recipientModel: Model<RecipientDocument>,
         @InjectModel(Notification.name) private readonly notificationModel: Model<NotificationDocument>,
         @InjectModel(LoginHistory.name) private readonly loginHistoryModel: Model<LoginHistoryDocument>,
+        @InjectModel(AdminNotification.name) private readonly adminNotificationModel: Model<AdminNotification>,
     ) { }
 
     async getUserByJWT(jwt: string) {
@@ -37,6 +39,10 @@ export class UserService {
 
     async getUserByJWTViaAuthGuard(jwt: string) {
         return await this.userModel.findOne({ token: jwt }).select(["password", "admin_id"]).exec();
+    }
+
+    async updateNumOfDeliveryCreated (num: number, user: User) {
+        await this.userModel.findByIdAndUpdate((<any> user).id, { total_delivery_created: num })
     }
 
     async signUp(data: UserDto) {
@@ -293,7 +299,7 @@ export class UserService {
 
         let dispatcher = delivery.dispatcher, email = dispatcher.email, name = dispatcher.name;
 
-        let tracking_link = `\nUse this link ${process.env.BASE_URL}/track/${sessionId} to track the delivery`
+        let tracking_link = `\nUse this link ${process.env.BASE_URL}/recipient/track/${sessionId} to track the delivery`
 
         this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up !", email, "box");
 
@@ -318,7 +324,7 @@ export class UserService {
     async viewProfile(user: User) {
         return {
             data: await this.userModel.findById((<any>user).id),
-            notification: await this.notificationModel.findOne({ "user": new Types.ObjectId((<any>user).id.toString()) })
+            notification: await this.getAdminNotification(user)//this.notificationModel.findOne({ "user": new Types.ObjectId((<any>user).id.toString()) })
         }
     }
     async getUser(id: string) {
@@ -380,7 +386,42 @@ export class UserService {
         }
 
     }
+    async stackAdminNotification(userId: string) {
+        let user = await this.userModel.findById(userId);
+        // mongoQuery.courier = new Types.ObjectId((<any>(<any>courier).id).toString())
+        let idObj = new Types.ObjectId(userId);
+        // log({ idObj })
+        let existing_notification = await this.adminNotificationModel.findOne({ "user": idObj });
+        // log({ existing_notification })
+        if (existing_notification) {
+            this.logger.log("Exisitng notification")
+            return existing_notification;
+        }
+        this.logger.log("Creating notification")
+        let notification = new this.adminNotificationModel({ user });
+        let data = await notification.save();
+        // log({data})
+        return data
+    }
+    async updateAdminNotificationSettings(user: User, data: AdminNotificationDto) {
 
+        let idObj = new Types.ObjectId((<any>user).id.toString());
+        // log({ idObj })
+        let existing_notification = await this.adminNotificationModel.findOne({ "user": idObj });
+
+        await this.adminNotificationModel.findByIdAndUpdate(existing_notification.id, data);
+
+        return {
+            message: "Notification settings updated successfully",
+            data: await this.adminNotificationModel.findOne({ "user": idObj })
+        }
+
+    }
+    async getAdminNotification(user: User) {
+        let idObj = new Types.ObjectId((<any>user).id);
+        let existing_notification = await this.adminNotificationModel.findOne({ "user": idObj });
+        return existing_notification;
+    }
     async toggleIsActiveMode(data: CourierOnDutyModeDTO, user: User) {
         let fetched_user = await this.userModel.findById((<any>user).id);
         if (!fetched_user) throw new NotFoundException({ message: "User not found, please login again" });
@@ -425,7 +466,7 @@ export class UserService {
 
         let user = await this.userModel.findById((<any>courier).id).select(["total_delivery"]).exec();
 
-        if (!user) throw new NotFoundException({message: "Couldn't find this courier, please try again"});
+        if (!user) throw new NotFoundException({ message: "Couldn't find this courier, please try again" });
 
         user.total_delivery = user.total_delivery + 1;
         user.save();
@@ -449,6 +490,7 @@ export class UserService {
             to_date,
             status,
             active,
+            role,
             query: searchQuery
         } = query;
 
@@ -485,6 +527,10 @@ export class UserService {
             mongoQuery.is_approved = status;
         }
 
+        if (role) {
+            mongoQuery.role = role;
+        }
+
         if (active) {
             mongoQuery.is_active = active;
         }
@@ -510,6 +556,22 @@ export class UserService {
         } catch (error) {
             console.error("Error fetching users:", error);
             throw new NotFoundException({ message: "Failed to retrieve users" }); // Or handle the error as needed
+        }
+    }
+
+    async userStat() {
+        return {
+            total_users: await this.userModel
+                .countDocuments()
+                .exec(),
+            couriers: await this.userModel
+                .countDocuments({ role: "Courier" })
+                .exec(),
+            dispatchers: await this.userModel
+                .countDocuments({ role: "Dispatcher" })
+                .exec(),
+            issues: 35,
+            pending_refund_request: []
         }
     }
 

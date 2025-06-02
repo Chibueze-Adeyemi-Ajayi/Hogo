@@ -15,6 +15,7 @@ import { UserModule } from './web/user/user.module';
 import { TrackerModule } from './gateway/tracker/tracker.module';
 import { MicrosoftAzureModule } from './third-party/microsoft-azure/microsoft-azure.module';
 import { AdminSupportStaffModule } from './web/admin/admin.module';
+import { SupportAgentModule } from './web/support-agent/support-agent.module';
 
 @Module({
   imports: [
@@ -69,6 +70,8 @@ import { AdminSupportStaffModule } from './web/admin/admin.module';
     MicrosoftAzureModule,
 
     AdminSupportStaffModule,
+
+    SupportAgentModule,
 
   ],
   controllers: [AppController],
