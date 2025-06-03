@@ -43,7 +43,7 @@ export class DeliveryService {
     private async getDelivery(tracking_id: string, dispatcher: User) {
         let delivery = await this.deliveryModel.findOne({ tracking_id }).populate(["dispatcher", "courier"]).exec();
         if (!delivery) throw new NotFoundException({ message: `Delivery with Tracking ID ${tracking_id} not found` });
-        log({ dispatcher });
+        // log({ dispatcher });
 
         // if (delivery.courier.toString().trim() == (<any>dispatcher).id.toString().trim()) return delivery
         // if (delivery.dispatcher.toString().trim() == (<any>dispatcher).id.toString().trim()) return delivery

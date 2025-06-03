@@ -6,6 +6,7 @@ import { AuthUser } from '../auth/auth.decorators/auth.decorator';
 import { User } from '../user/user.schema/user.schema';
 import { UpdateUserDto, UserAccountStatusUpdateDTO } from '../user/user.dto/user.dto';
 import { AdminNotificationDto } from '../user/user.dto/user.notification.dto';
+import { UpdateDeliveryDTO } from '../delivery/delivery.dto/delivery.dto';
 
 @Controller('admin')
 @ApiBearerAuth("JWT-auth")
@@ -79,5 +80,10 @@ export class AdminController {
     @ApiParam({ name: 'tracking_id', type: 'string', description: 'Tracking ID', required: true, example: "ORD0041" })
     async viewDelivery (@Param("tracking_id") tracking_id: string) {
         return await this.adminService.viewDelivery(tracking_id)
+    }
+    @Patch("update/delivery/:tracking_id")
+    @ApiParam({ name: 'tracking_id', type: 'string', description: 'Tracking ID', required: true, example: "ORD0041" })
+    async updateDelivery (@Param("tracking_id") tracking_id: string, @AuthUser() user: User, @Body() data: UpdateDeliveryDTO) {
+        return await this.adminService.updateDelivery(tracking_id, user, data);
     }
 }

@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { User } from '../user/user.schema/user.schema';
 import { DeliveryService } from '../delivery/delivery.service';
-import { DeliveryQueryDTO } from '../delivery/delivery.dto/delivery.dto';
+import { DeliveryQueryDTO, UpdateDeliveryDTO } from '../delivery/delivery.dto/delivery.dto';
 import { UserService } from '../user/user.service';
 import { UpdateUserDto, UserAccountStatusUpdateDTO } from '../user/user.dto/user.dto';
 import { AdminNotificationDto } from '../user/user.dto/user.notification.dto';
@@ -42,5 +42,8 @@ export class AdminService {
     }
     async viewDelivery (tracking_id: string) {
         return await this.deliveryService.viewDelivery(tracking_id);
+    }
+    async updateDelivery (tracking_id: string, user: User, data: UpdateDeliveryDTO) {
+        return await this.deliveryService.updateDelivery(data, tracking_id, user);
     }
 }
