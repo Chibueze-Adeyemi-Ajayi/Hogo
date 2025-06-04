@@ -135,6 +135,10 @@ export class DeliveryService {
 
         return await this.deliveryModel.findById(delivery.id);
     }
+    async viewDeliveryByTrackingID(tracking_id: string, dispatcher?: User) {
+        let delivery = await this.deliveryModel.findOne({ tracking_id }).populate(["courier", "dispatcher"]).exec();
+        return delivery;
+    }
     async viewDelivery(tracking_id: string, dispatcher?: User) {
         let delivery = await this.deliveryModel.findOne({ tracking_id }).populate(["courier", "dispatcher"]).exec();
         let tracking = await this.trackingModel.findOne({ delivery: delivery.id })

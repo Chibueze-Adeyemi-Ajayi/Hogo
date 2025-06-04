@@ -167,6 +167,11 @@ export class UserService {
         }
 
     }
+    async emailUser(email: string, subject: string, body: string) {
+        let data = this.utilService.sendEmail(body, subject, email, "box");
+        this.logger.log(`Email sent to user ${email}`);
+        return data;
+    }
     async validateOTP(data: ValidateOTP) {
 
         let { email, otp } = data;

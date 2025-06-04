@@ -165,12 +165,17 @@ export class UpdateDeliveryDTO {
         ]
     }) @IsArray() @IsOptional() specimen: Object[]
 
+    @ApiProperty({
+        required: false,
+        description: "The price of the delivery",
+        example: "1000"
+    }) @IsString() price: string
 
     @ApiProperty({
-        // required: false,
+        required: false,
         description: "Delivery note",
         example: "Lorem ipsum"
-    }) @IsString() note: string
+    }) @IsOptional() @IsString() note: string
 
 
 }
@@ -180,7 +185,7 @@ export class CancelDeliveryDTO {
     @ApiProperty({
         description: "Reason for cancelling the delivery",
         example: "The courier didn't pick it up on time"
-    }) @IsString() reason: string
+    }) @IsOptional() @IsString() reason: string
 }
 
 export class DeliveryQueryDTO {
