@@ -6,7 +6,7 @@ export class OpenIssuesDTO {
         description: "Type of issue - it's in camel case seperated by -",
         example: "Delivery-Failed",
         required: false
-    }) @IsOptional() @IsString() type: string;
+    }) @IsString() type: string;
 
     @ApiProperty({
         description: "Note to report (optional)",

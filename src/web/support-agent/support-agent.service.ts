@@ -5,12 +5,14 @@ import { UserService } from '../user/user.service';
 import { IssuesService } from '../issues/issues.service';
 // import { UpdateDeliveryDTO } from '../delivery/delivery.dto/delivery.dto';
 import { UpdateIssuesDTO } from '../issues/issues.dto/issues.dto';
+import { RefundService } from '../refund/refund.service';
 
 @Injectable()
 export class SupportAgentService {
     constructor (
         @Inject() private readonly userService: UserService,
         @Inject() private readonly issueService: IssuesService,
+        @Inject() private readonly refundService: RefundService,
         @Inject() private readonly deliveryService: DeliveryService,
     ) {}
     async dashboard (user: User) {
@@ -33,5 +35,14 @@ export class SupportAgentService {
     }
     async updateIssueStatus (tracking_id: string, issueData: UpdateIssuesDTO) {
         return await this.issueService.updateIssueStatus(issueData, tracking_id);
+    }
+    async allRefund (query: any) {
+        return await this.refundService.getAllRefundRequests(query);
+    }
+    async viewRefund (tracking_id: string) {
+        return await this.refundService.viewRefund(tracking_id);
+    }
+    async updateRefundStatus (tracking_id: string, issueData: UpdateIssuesDTO) {
+        return await this.refundService.updateRefundStatus(issueData, tracking_id);
     }
 }

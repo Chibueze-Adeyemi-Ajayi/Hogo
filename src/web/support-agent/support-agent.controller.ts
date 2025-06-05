@@ -5,6 +5,7 @@ import { AuthUser } from '../auth/auth.decorators/auth.decorator';
 import { User } from '../user/user.schema/user.schema';
 import { SupportAgentService } from './support-agent.service';
 import { UpdateIssuesDTO } from '../issues/issues.dto/issues.dto';
+import { UpdateRefundDTO } from '../refund/refund.dto/refund.dto';
 
 @Controller('support-agent')
 @ApiBearerAuth("JWT-auth")
@@ -43,6 +44,8 @@ export class SupportAgentController {
     async viewDelivery(@Param("tracking_id") tracking_id: string) {
         return await this.supportAgentService.viewDelivery(tracking_id)
     }
+    
+    @Get("all-issues")
     @ApiQuery({ name: 'query', required: false, type: 'string', description: 'The search parameter ', example: 'John' })
     @ApiQuery({ name: 'type', required: false, type: 'string', enum: ["Delivery-Failed", "Incorrect-Drop-off-Info", "...."], description: 'The type of issue (optional)', example: 'Delivery-Failed' })
     @ApiQuery({ name: 'status', required: false, type: 'string', enum: ["open", "in-review", "resolved"], description: 'The status of issue (optional)', example: 'open' })
@@ -51,7 +54,6 @@ export class SupportAgentController {
     @ApiQuery({ name: 'sort', required: false, type: 'boolean', description: 'Set the order of results {true => ascending, false => descending} (optional)', example: true })
     @ApiQuery({ name: 'from_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-04-29T19:25:16.546Z' })
     @ApiQuery({ name: 'to_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-09-29T19:25:16.546Z' })
-    @Get("all-issues")
     async allIssues(@Query() query: any) {
         return await this.supportAgentService.allIssues(query);
     }
@@ -64,5 +66,27 @@ export class SupportAgentController {
     @ApiParam({ name: 'tracking_id', type: 'string', description: 'Tracking ID', required: true, example: "ISS0002" })
     async updateIssueStatus(@Param("tracking_id") tracking_id: string, @Body() issueData: UpdateIssuesDTO) {
         return await this.supportAgentService.updateIssueStatus(tracking_id, issueData);
+    }
+    @Get("all-refund")
+    @ApiQuery({ name: 'query', required: false, type: 'string', description: 'The search parameter ', example: 'John' })
+    @ApiQuery({ name: 'type', required: false, type: 'string', enum: ["Duplicate-Charge", "Cancelled-By-Admin", "...."], description: 'The type of refund (optional)', example: 'Duplicate-Charge' })
+    @ApiQuery({ name: 'status', required: false, type: 'string', enum: ["pending", "declined", "approved"], description: 'The status of issue (optional)', example: 'open' })
+    @ApiQuery({ name: 'page', required: false, type: 'number', description: 'The current page for the pagination (optional)', example: 1 })
+    @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'The number of results expected (optional)', example: 10 })
+    @ApiQuery({ name: 'sort', required: false, type: 'boolean', description: 'Set the order of results {true => ascending, false => descending} (optional)', example: true })
+    @ApiQuery({ name: 'from_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-04-29T19:25:16.546Z' })
+    @ApiQuery({ name: 'to_date', required: false, type: 'string', format: 'date-time', description: 'The date to start the sort', example: '2025-09-29T19:25:16.546Z' })
+    async allRefund(@Query() query: any) {
+        return await this.supportAgentService.allRefund(query);
+    }
+    @Get("view/refund/:tracking_id")
+    @ApiParam({ name: 'tracking_id', type: 'string', description: 'Tracking ID', required: true, example: "RFD0002" })
+    async viewRefund(@Param("tracking_id") tracking_id: string) {
+        return await this.supportAgentService.viewRefund(tracking_id);
+    }
+    @Patch("update/refund-status/:tracking_id")
+    @ApiParam({ name: 'tracking_id', type: 'string', description: 'Tracking ID', required: true, example: "RFD0002" })
+    async updateRefundStatus(@Param("tracking_id") tracking_id: string, @Body() issueData: UpdateRefundDTO) {
+        return await this.supportAgentService.updateRefundStatus(tracking_id, issueData);
     }
 }

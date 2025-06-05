@@ -17,6 +17,7 @@ import { MicrosoftAzureModule } from './third-party/microsoft-azure/microsoft-az
 import { AdminSupportStaffModule } from './web/admin/admin.module';
 import { SupportAgentModule } from './web/support-agent/support-agent.module';
 import { IssuesModule } from './web/issues/issues.module';
+import { RefundModule } from './web/refund/refund.module';
 
 @Module({
   imports: [
@@ -75,6 +76,8 @@ import { IssuesModule } from './web/issues/issues.module';
     SupportAgentModule,
 
     IssuesModule,
+
+    RefundModule,
 
   ],
   controllers: [AppController],

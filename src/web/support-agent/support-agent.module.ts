@@ -7,12 +7,14 @@ import { DeliveryModule } from '../delivery/delivery.module';
 import { CourierModule } from '../courier/courier.module';
 import { DispatcherModule } from '../dispatcher/dispatcher.module';
 import { IssuesModule } from '../issues/issues.module';
+import { RefundModule } from '../refund/refund.module';
 
 @Module({
   controllers: [SupportAgentController],
   providers: [SupportAgentService],
   imports: [
-    AuthModule, UserModule, DeliveryModule, CourierModule, DispatcherModule, IssuesModule
+    AuthModule, UserModule, DeliveryModule, CourierModule, 
+    DispatcherModule, IssuesModule, RefundModule
   ]
 })
 export class SupportAgentModule {}
