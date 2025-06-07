@@ -17,13 +17,19 @@ import { CourierOnDutyModeDTO } from '../courier/courier.dto/courier.dto';
 import { MicrosoftAzureService } from 'src/third-party/microsoft-azure/microsoft-azure.service';
 import { LoginHistory, LoginHistoryDocument } from './user.schema/login.history.schema';
 import { AdminNotification } from './user.schema/user.admin.notification.schema';
-
+import {
+    subDays,
+    startOfDay,
+    endOfDay,
+    format,
+} from 'date-fns';
 @Injectable()
 export class UserService {
     private logger = new Logger(UserService.name)
     constructor(
         @Inject() private readonly jwtService: JwtService,
         @Inject() private readonly utilService: UtilsService,
+        // @Inject() private readonly utilService: UtilsService,
         @Inject() private readonly microsoftAzureService: MicrosoftAzureService,
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(UserOTP.name) private readonly userOTPModel: Model<UserOTPDocument>,
@@ -41,8 +47,8 @@ export class UserService {
         return await this.userModel.findOne({ token: jwt }).select(["password", "admin_id"]).exec();
     }
 
-    async updateNumOfDeliveryCreated (num: number, user: User) {
-        await this.userModel.findByIdAndUpdate((<any> user).id, { total_delivery_created: num })
+    async updateNumOfDeliveryCreated(num: number, user: User) {
+        await this.userModel.findByIdAndUpdate((<any>user).id, { total_delivery_created: num })
     }
 
     async signUp(data: UserDto) {
@@ -167,6 +173,7 @@ export class UserService {
         }
 
     }
+    async getUsers(userSearchQuery: any) { return await this.userModel.find(userSearchQuery, { _id: 1 }).exec(); }
     async emailUser(email: string, subject: string, body: string) {
         let data = this.utilService.sendEmail(body, subject, email, "box");
         this.logger.log(`Email sent to user ${email}`);
@@ -565,19 +572,78 @@ export class UserService {
     }
 
     async userStat() {
+        const now = new Date();
+        const sevenDaysAgoStart = startOfDay(subDays(now, 7)); // Start of 7 days ago
+        const oneDayAgoStart = startOfDay(subDays(now, 1)); // Start of 1 day ago (to define current period)
+
+        // Helper function to get counts for a specific role and date range
+        const getRoleCounts = async (role: string | null, startDate: Date, endDate: Date) => {
+            const matchQuery: any = {
+                createdAt: {
+                    $gte: startDate,
+                    $lte: endDate,
+                },
+            };
+            if (role) {
+                matchQuery.role = role;
+            }
+            return this.userModel.countDocuments(matchQuery).exec();
+        };
+
+        // Define the current 7-day period (e.g., last 7 full days from now)
+        const currentPeriodStart = startOfDay(subDays(now, 7)); // Start of the current 7-day window
+        const currentPeriodEnd = now; // Up to the current moment
+
+        // Define the previous 7-day period (the 7 days immediately before the currentPeriodStart)
+        const previousPeriodEnd = startOfDay(subDays(currentPeriodStart, 1)); // End of the day before current period started
+        const previousPeriodStart = startOfDay(subDays(previousPeriodEnd, 6)); // 7 days before previousPeriodEnd
+
+        log(`Current Period: ${format(currentPeriodStart, 'yyyy-MM-dd')} to ${format(currentPeriodEnd, 'yyyy-MM-dd HH:mm:ss')}`);
+        log(`Previous Period: ${format(previousPeriodStart, 'yyyy-MM-dd')} to ${format(previousPeriodEnd, 'yyyy-MM-dd HH:mm:ss')}`);
+
+
+        // --- Fetch counts for the CURRENT 7-day period ---
+        const [
+            totalUsersCurrent,
+            couriersCurrent,
+            dispatchersCurrent,
+        ] = await Promise.all([
+            getRoleCounts(null, currentPeriodStart, currentPeriodEnd), // Total users in current period
+            getRoleCounts('Courier', currentPeriodStart, currentPeriodEnd), // Couriers in current period
+            getRoleCounts('Dispatcher', currentPeriodStart, currentPeriodEnd), // Dispatchers in current period
+        ]);
+
+        // --- Fetch counts for the PREVIOUS 7-day period ---
+        const [
+            totalUsersPrevious,
+            couriersPrevious,
+            dispatchersPrevious,
+        ] = await Promise.all([
+            getRoleCounts(null, previousPeriodStart, previousPeriodEnd), // Total users in previous period
+            getRoleCounts('Courier', previousPeriodStart, previousPeriodEnd), // Couriers in previous period
+            getRoleCounts('Dispatcher', previousPeriodStart, previousPeriodEnd), // Dispatchers in previous period
+        ]);
+
+        // Helper to calculate percentage change
+        const calculatePercentageChange = (current: number, previous: number): number => {
+            if (previous === 0) {
+                return current > 0 ? 100 : 0; // If previous was 0 and current is > 0, it's 100% growth (or 0 if still 0)
+            }
+            return parseFloat(((current - previous) / previous * 100).toFixed(2)); // To 2 decimal places
+        };
+
         return {
-            total_users: await this.userModel
-                .countDocuments()
-                .exec(),
-            couriers: await this.userModel
-                .countDocuments({ role: "Courier" })
-                .exec(),
-            dispatchers: await this.userModel
-                .countDocuments({ role: "Dispatcher" })
-                .exec(),
-            issues: 35,
-            pending_refund_request: []
-        }
+            current_counts: {
+                total_users: totalUsersCurrent,
+                couriers: couriersCurrent,
+                dispatchers: dispatchersCurrent,
+            },
+            percentage_change_last_week: {
+                total_users: calculatePercentageChange(totalUsersCurrent, totalUsersPrevious),
+                couriers: calculatePercentageChange(couriersCurrent, couriersPrevious),
+                dispatchers: calculatePercentageChange(dispatchersCurrent, dispatchersPrevious),
+            },
+        };
     }
 
 }

@@ -50,14 +50,12 @@ export class IssuesService {
         }
         return issue;
     }
-
     async getAllIssues(query: any) {
-
         const {
             page = 1,
             limit = 10,
             sort = true,
-            date_filter_type,
+            date_filter_type, // This seems unused in the existing date filtering logic
             from_date,
             to_date,
             type,
@@ -65,14 +63,14 @@ export class IssuesService {
             query: searchQuery
         } = query;
 
-        log({ query })
+        log({ query });
 
         const skip = (page - 1) * limit;
-        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
+        const sortOrder = sort ? (sort.toString() === 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
 
-        const mongoQuery: any = {}; // Filter by cancellation status
+        const mongoQuery: any = {}; // Initialize the main MongoDB query object
 
-        // Date filtering
+        // Date filtering (assuming 'createdAt' is the relevant date field)
         if (date_filter_type && from_date && to_date) {
             const dateField = 'createdAt';
             mongoQuery[dateField] = {
@@ -81,30 +79,60 @@ export class IssuesService {
             };
         }
 
-        // Full-text search
-        if (searchQuery) {
-            mongoQuery.$or = [
-                { 'tracking_id': { $regex: searchQuery, $options: 'i' } },
-                { 'user.email': { $regex: searchQuery, $options: 'i' } },
-                { 'user.name': { $regex: searchQuery, $options: 'i' } },
-                { 'user.role': { $regex: searchQuery, $options: 'i' } },
-                { 'delivery.tracking_id': { $regex: searchQuery, $options: 'i' } },
-            ];
-        }
+        // --- Dynamic filtering based on search query ---
+        const orConditions: any[] = [];
 
+        if (searchQuery) {
+            // 1. Search by tracking_id directly on the Issue model (if 'tracking_id' exists on Issue)
+            //    Note: If 'Issue' schema doesn't have 'tracking_id', remove this line or adjust
+            orConditions.push({ 'tracking_id': { $regex: searchQuery, $options: 'i' } });
+
+            // 2. Search related User documents (by email, name, role) and add their IDs to the query
+            const userSearchQuery: any = {
+                $or: [
+                    { 'email': { $regex: searchQuery, $options: 'i' } },
+                    { 'name': { $regex: searchQuery, $options: 'i' } },
+                    { 'role': { $regex: searchQuery, $options: 'i' } },
+                ]
+            };
+            const users = await this.userService.getUsers(userSearchQuery) // Select only _id
+            const userIds = users.map(user => user._id);
+
+            if (userIds.length > 0) {
+                orConditions.push({ 'user': { $in: userIds } });
+            }
+
+            // 3. Search related Delivery documents by tracking_id and add their IDs to the query
+            const deliverySearchQuery: any = { 'tracking_id': { $regex: searchQuery, $options: 'i' } };
+            const deliveries = await this.deliveryService.getDeliveries(deliverySearchQuery); // Select only _id
+            const deliveryIds = deliveries.map(delivery => delivery._id);
+
+            if (deliveryIds.length > 0) {
+                orConditions.push({ 'delivery': { $in: deliveryIds } });
+            }
+
+            // Apply $or conditions if any were generated
+            if (orConditions.length > 0) {
+                mongoQuery.$or = orConditions;
+            }
+        }
+        // --- End of dynamic filtering ---
+
+        // Filter by 'type' (assuming 'type' field exists on your Issue schema)
         if (type) {
             mongoQuery.type = type;
         }
 
+        // Filter by 'status' (assuming 'status' field exists on your Issue schema)
         if (status) {
             mongoQuery.status = status;
         }
 
-        log(mongoQuery)
+        log(mongoQuery);
 
         const issues = await this.issuesModel
             .find(mongoQuery)
-            .populate(["user", "delivery"])
+            .populate(["user", "delivery"]) // Populate referenced user and delivery details
             .skip(skip)
             .limit(limit)
             .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
@@ -117,11 +145,8 @@ export class IssuesService {
             limit,
             total,
         };
-
     }
-
     async getMyAllIssues(user: User, query: any) {
-
         const {
             page = 1,
             limit = 10,
@@ -134,14 +159,19 @@ export class IssuesService {
             query: searchQuery
         } = query;
 
-        log({ query })
+        log({ query });
 
         const skip = (page - 1) * limit;
-        const sortOrder = sort ? (sort.toString() == 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
+        const sortOrder = sort ? (sort.toString() === 'true') ? 1 : -1 : -1; // 1 for ascending, -1 for descending
 
-        const mongoQuery: any = {}; // Filter by cancellation status
+        const mongoQuery: any = {}; // Initialize the main MongoDB query object
 
-        // Date filtering
+        // Filter issues by the provided user's ID
+        // Ensure that user.id is correctly an ObjectId for the query
+        mongoQuery["user"] = new Types.ObjectId((user as any)._id); // Assuming user._id is the MongoDB ID
+
+
+        // Date filtering (assuming 'createdAt' is the relevant date field)
         if (date_filter_type && from_date && to_date) {
             const dateField = 'createdAt';
             mongoQuery[dateField] = {
@@ -150,32 +180,70 @@ export class IssuesService {
             };
         }
 
-        // Full-text search
-        if (searchQuery) {
-            mongoQuery.$or = [
-                { 'tracking_id': { $regex: searchQuery, $options: 'i' } },
-                { 'user.email': { $regex: searchQuery, $options: 'i' } },
-                { 'user.name': { $regex: searchQuery, $options: 'i' } },
-                { 'user.role': { $regex: searchQuery, $options: 'i' } },
-                { 'delivery.tracking_id': { $regex: searchQuery, $options: 'i' } },
-            ];
-        }
+        // --- Dynamic filtering based on search query ---
+        const orConditions: any[] = [];
 
+        if (searchQuery) {
+            // 1. Search by tracking_id directly on the Issue model (if 'tracking_id' exists on Issue)
+            orConditions.push({ 'tracking_id': { $regex: searchQuery, $options: 'i' } });
+
+            // 2. Search related User documents (by email, name, role) and add their IDs to the query
+            //    Note: This search applies to other users, the primary filter is by the current 'user'
+            const userSearchQuery: any = {
+                $or: [
+                    { 'email': { $regex: searchQuery, $options: 'i' } },
+                    { 'name': { $regex: searchQuery, $options: 'i' } },
+                    { 'role': { $regex: searchQuery, $options: 'i' } },
+                ]
+            };
+            const users = await this.userService.getUsers(userSearchQuery) // Select only _id
+            const userIds = users.map(user => user._id);
+
+            // Only add to $or if the search query is for *other* users,
+            // and if the current user ID is not already covered by this
+            if (userIds.length > 0) {
+                orConditions.push({ 'user': { $in: userIds } });
+            }
+
+            // 3. Search related Delivery documents by tracking_id and add their IDs to the query
+            const deliverySearchQuery: any = { 'tracking_id': { $regex: searchQuery, $options: 'i' } };
+            const deliveries = await this.deliveryService.getDeliveries(deliverySearchQuery); // Select only _id
+            const deliveryIds = deliveries.map(delivery => delivery._id);
+
+            if (deliveryIds.length > 0) {
+                orConditions.push({ 'delivery': { $in: deliveryIds } });
+            }
+
+            // Apply $or conditions if any were generated
+            // IMPORTANT: Ensure the specific user filter (mongoQuery["user"]) is combined correctly with $or.
+            // If $or is present, it means complex search. The 'user' filter should logically AND with it.
+            if (orConditions.length > 0) {
+                if (mongoQuery.$and) {
+                    mongoQuery.$and.push({ $or: orConditions });
+                } else {
+                    mongoQuery.$and = [{ $or: orConditions }];
+                }
+            }
+        }
+        // --- End of dynamic filtering ---
+
+        // Filter by 'type' (assuming 'type' field exists on your Issue schema)
         if (type) {
             mongoQuery.type = type;
         }
 
+        // Filter by 'status' (assuming 'status' field exists on your Issue schema)
         if (status) {
             mongoQuery.status = status;
         }
 
-        log({user});
+        log({ user });
+        log(mongoQuery);
 
-        mongoQuery["user"] = new Types.ObjectId((<any>user).id).toString(); // Filter by user ID
 
         const issues = await this.issuesModel
             .find(mongoQuery)
-            .populate(["user", "delivery"])
+            .populate(["user", "delivery"]) // Populate referenced user and delivery details
             .skip(skip)
             .limit(limit)
             .sort({ ["createdAt"]: sortOrder }) // Sort by the selected date field
@@ -188,9 +256,8 @@ export class IssuesService {
             limit,
             total,
         };
-
     }
-    async updateIssueStatus (data: UpdateIssuesDTO, tracking_id: string) {
+    async updateIssueStatus(data: UpdateIssuesDTO, tracking_id: string) {
         // Logic to update the status of an issue by tracking_id
         const issue = await this.issuesModel.findOneAndUpdate(
             { tracking_id },

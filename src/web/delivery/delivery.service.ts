@@ -30,12 +30,15 @@ import { enUS, enGB } from 'date-fns/locale'; // Import locale if needed
 import { Tracking, TrackingDocument } from './delivery.schema/tracking.schema';
 import { v4 as uuidv4 } from 'uuid';
 import { CourierService } from '../courier/courier.service';
+import { IssuesService } from '../issues/issues.service';
+import { RefundService } from '../refund/refund.service';
 
 @Injectable()
 export class DeliveryService {
     constructor(
         @Inject() private readonly userService: UserService,
         @Inject() private readonly utilService: UtilsService,
+        // @Inject() private readonly refundService: RefundService,
         @Inject() private readonly courierService: CourierService,
         @InjectModel(Delivery.name) private readonly deliveryModel: Model<DeliveryDocument>,
         @InjectModel(Tracking.name) private readonly trackingModel: Model<TrackingDocument>
@@ -227,6 +230,7 @@ export class DeliveryService {
             throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
         }
     }
+    async getDeliveries (deliverySearchQuery: any) { return await this.deliveryModel.find(deliverySearchQuery, { _id: 1 }).exec(); }
     async viewAvailablePickupDelivery(query: DeliveryQueryDTO, courier: User) {
 
         const {
@@ -804,12 +808,16 @@ export class DeliveryService {
 
         const topCouriers = await this.userService.topCouriers();
 
+        let userStat = await this.userService.userStat();
+
+        // userStat["pending_refund_request"] = await this.refundService.getLatestRefundRequest();
+
         return {
             // counts: currentCounts,
             yearlyDeliveries: yearlyCounts,
             monthlyDeliveries: monthlyCounts,
             weeklyDeliveries: weeklyCounts,
-            userStat: await this.userService.userStat(),
+            userStat,
             topCouriers
         };
     }

@@ -16,7 +16,10 @@ export class SupportAgentService {
         @Inject() private readonly deliveryService: DeliveryService,
     ) {}
     async dashboard (user: User) {
-        return this.deliveryService.getDeliveryStatisticsForSupportStaff();
+        let data = await this.deliveryService.getDeliveryStatisticsForSupportStaff();
+        const pending_refund_request = await this.refundService.getLatestRefundRequest();
+        const usersWithIssues = await this.refundService.distinctRefundStatuses();
+        return {... data, pending_refund_request, usersWithIssues};
     }
     async loadUsers (query: any) {
         return this.userService.getAllUsers(query);

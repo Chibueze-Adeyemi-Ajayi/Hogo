@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { RefundController } from './refund.controller';
 import { RefundService } from './refund.service';
 import { Refund, RefundSchema } from './refund.schema/refund.schema';
@@ -11,7 +11,9 @@ import { DeliveryModule } from '../delivery/delivery.module';
     MongooseModule.forFeature([
       { name: Refund.name, schema: RefundSchema }
     ]),
-    UserModule,
+    // forwardRef(() => UserModule),
+    forwardRef(() => UserModule) ,
+    // forwardRef(() => DeliveryModule) 
     DeliveryModule
   ],
   controllers: [RefundController],

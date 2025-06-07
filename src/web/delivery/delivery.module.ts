@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { DeliveryController } from './delivery.controller';
 import { DeliveryService } from './delivery.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -11,6 +11,7 @@ import { Tracking, TrackingSchema } from './delivery.schema/tracking.schema';
 import { CourierService } from '../courier/courier.service';
 import { CourierModule } from '../courier/courier.module';
 import { MicrosoftAzureModule } from 'src/third-party/microsoft-azure/microsoft-azure.module';
+import { RefundModule } from '../refund/refund.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { MicrosoftAzureModule } from 'src/third-party/microsoft-azure/microsoft-
     UserModule,
     UtilsModule,
     CourierModule,
-    MicrosoftAzureModule
+    MicrosoftAzureModule,
+    // forwardRef(() => RefundModule),
   ],
   controllers: [DeliveryController],
   providers: [DeliveryService, CourierService],

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -12,6 +12,8 @@ import { NotificationSchema, Notification } from './user.schema/user.notificatio
 import { MicrosoftAzureModule } from 'src/third-party/microsoft-azure/microsoft-azure.module';
 import { LoginHistory, LoginHistorySchema } from './user.schema/login.history.schema';
 import { AdminNotification, AdminNotificationSchema } from './user.schema/user.admin.notification.schema';
+import { IssuesModule } from '../issues/issues.module';
+import { RefundModule } from '../refund/refund.module';
 
 @Module({
   controllers: [UserController],
@@ -27,7 +29,10 @@ import { AdminNotification, AdminNotificationSchema } from './user.schema/user.a
     ]),
     JwtModule,
     UtilsModule,
-    MicrosoftAzureModule
+    MicrosoftAzureModule,
+    // RefundModule,
+    // forwardRef(() => RefundModule) 
+    // forwardRef(() => IssuesModule), // Use forwardRef to avoid circular dependency issues
     // DeliveryModule
   ],
   exports: [UserService]

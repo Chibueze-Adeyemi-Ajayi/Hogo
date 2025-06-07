@@ -76,6 +76,8 @@ export class TrackerService implements OnGatewayConnection, OnGatewayDisconnect 
             this.server.to(dispatcher_socket_id).emit("broadcast", new_delivery);
             this.server.to(recipient_socket_id).emit("broadcast", new_delivery);
 
+            client.emit("broadcast", new_delivery);
+
         } catch (error) { client.emit("error", error.response); }
     }
 
