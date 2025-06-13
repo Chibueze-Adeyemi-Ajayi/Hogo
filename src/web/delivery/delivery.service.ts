@@ -356,7 +356,7 @@ export class DeliveryService {
         }
 
         if (status) {
-            mongoQuery.status = "pending";
+            mongoQuery.status = status;
         }
 
         mongoQuery.courier = new Types.ObjectId((<any>(<any>courier).id).toString())

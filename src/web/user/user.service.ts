@@ -340,7 +340,7 @@ export class UserService {
         }
     }
     async getUser(id: string) {
-        let user = await this.userModel.findById(id).select(['name', 'email', 'profile_pics', 'department', 'role', 'phone_number', 'staff_number', 'admin_id', 'is_verified', 'is_approved', 'is_active']).exec();
+        let user = await this.userModel.findById(id).select(['name', 'email', 'profile_pics', 'department', 'role', 'phone_number', 'staff_number', 'admin_id', 'is_verified', 'is_approved', 'is_active', 'createdAt']).exec();
         if (!user) throw new NotFoundException({ message: "User not found" });
         let history = await this.loginHistoryModel.find({ user: id });
         return { user, history };
