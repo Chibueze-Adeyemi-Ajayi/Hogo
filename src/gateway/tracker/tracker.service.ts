@@ -28,6 +28,7 @@ export class TrackerService implements OnGatewayConnection, OnGatewayDisconnect 
 
     handleConnection(client: Socket, ...args: any[]) {
         this.logger.log(`A user just connected: ${client.id}`)
+        client.emit("start", { message: "You are connected to the tracker service" });
     }
 
     @SubscribeMessage('start')
