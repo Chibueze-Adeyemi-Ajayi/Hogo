@@ -219,8 +219,26 @@ export class DeliveryService {
                 .exec();
 
             const total = await this.deliveryModel.countDocuments(mongoQuery);
+
+            let tracking = []
+
+            for (const delivery of deliveries) {
+                let _tracking = await this.trackingModel.findOne({ delivery:  delivery.id});
+                if (_tracking) {
+                    tracking.push({
+                        delivery: delivery,
+                        sessionId: _tracking.sessionId
+                    });
+                } else {
+                    tracking.push({
+                        delivery: delivery,
+                        sessionId: null
+                    });
+                }
+            }
+
             return {
-                deliveries,
+                deliveries: tracking,
                 page,
                 limit,
                 total,
@@ -491,7 +509,7 @@ export class DeliveryService {
 
         const countAll = await getCounts();
 
-        log({ currentCounts, previousCounts, countAll })  
+        log({ currentCounts, previousCounts, countAll })
 
         // Calculate percentage changes
         const calculatePercentageChange = (current: number, previous: number) => {
@@ -873,8 +891,26 @@ export class DeliveryService {
                 .exec();
 
             const total = await this.deliveryModel.countDocuments(mongoQuery);
+
+            let tracking = []
+
+            for (const delivery of deliveries) {
+                let _tracking = await this.trackingModel.findOne({ delivery:  delivery.id});
+                if (_tracking) {
+                    tracking.push({
+                        delivery: delivery,
+                        sessionId: _tracking.sessionId
+                    });
+                } else {
+                    tracking.push({
+                        delivery: delivery,
+                        sessionId: null
+                    });
+                }
+            }
+
             return {
-                deliveries,
+                deliveries: tracking,
                 page,
                 limit,
                 total,
