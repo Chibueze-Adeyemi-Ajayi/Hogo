@@ -572,6 +572,7 @@ export class UserService {
     }
 
     async userStat() {
+
         const now = new Date();
         const sevenDaysAgoStart = startOfDay(subDays(now, 7)); // Start of 7 days ago
         const oneDayAgoStart = startOfDay(subDays(now, 1)); // Start of 1 day ago (to define current period)
@@ -634,9 +635,9 @@ export class UserService {
 
         return {
             current_counts: {
-                total_users: totalUsersCurrent,
-                couriers: couriersCurrent,
-                dispatchers: dispatchersCurrent,
+                total_users: await this.userModel.countDocuments(),
+                couriers: await this.userModel.countDocuments({ role: "Courier" }),
+                dispatchers: await this.userModel.countDocuments({ role: "Dispatcher" }),
             },
             percentage_change_last_week: {
                 total_users: calculatePercentageChange(totalUsersCurrent, totalUsersPrevious),
@@ -644,6 +645,7 @@ export class UserService {
                 dispatchers: calculatePercentageChange(dispatchersCurrent, dispatchersPrevious),
             },
         };
+        
     }
 
 }

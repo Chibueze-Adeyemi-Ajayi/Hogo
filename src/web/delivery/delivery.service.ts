@@ -230,7 +230,7 @@ export class DeliveryService {
             throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
         }
     }
-    async getDeliveries (deliverySearchQuery: any) { return await this.deliveryModel.find(deliverySearchQuery, { _id: 1 }).exec(); }
+    async getDeliveries(deliverySearchQuery: any) { return await this.deliveryModel.find(deliverySearchQuery, { _id: 1 }).exec(); }
     async viewAvailablePickupDelivery(query: DeliveryQueryDTO, courier: User) {
 
         const {
@@ -382,7 +382,7 @@ export class DeliveryService {
                 data["sessionId"] = tracking ? tracking.sessionId : null;
                 response_data.push(data)
             }
-            
+
             return {
                 deliveries: response_data,
                 page,
@@ -450,48 +450,53 @@ export class DeliveryService {
         return { delivery: await this.deliveryModel.findById(delivery.id), sessionId }
     }
     async getDeliveryStatistics(user: User, type: string) {
-        // log({user})
         const now = new Date();
-        const lastWeekStart = startOfWeek(subWeeks(now, 1), { locale: enUS });
-        const lastWeekEnd = endOfWeek(subWeeks(now, 1), { locale: enUS });
-        const userId = new Types.ObjectId((<any>user).id); // Convert user._id to ObjectId
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
 
-        // Determine the field to filter by based on the 'type' parameter
+        // Last 7 days (including today)
+        const last7DaysStart = new Date(today);
+        last7DaysStart.setDate(today.getDate() - 6); // 6 days before today
+
+        // Previous 7 days (the 7 days before the last 7 days)
+        const prev7DaysStart = new Date(today);
+        prev7DaysStart.setDate(today.getDate() - 13);
+        const prev7DaysEnd = new Date(today);
+        prev7DaysEnd.setDate(today.getDate() - 7);
+        prev7DaysEnd.setHours(23, 59, 59, 999);
+
+        const userId = new Types.ObjectId((<any>user).id); // Convert user._id to ObjectId
         const typeField = type === 'courier' ? 'courier' : 'dispatcher';
 
         // Helper function to get counts with optional date range
         const getCounts = async (match: any = {}) => {
             return {
-                total: await this.deliveryModel.countDocuments({ [typeField]: userId, ...match }).exec(),
-                pending: await this.deliveryModel
-                    .countDocuments({ [typeField]: userId, ...match, status: 'pending' })
-                    .exec(),
-                inTransit: await this.deliveryModel
-                    .countDocuments({ [typeField]: userId, ...match, status: 'in-transit' })
-                    .exec(),
-                delivered: await this.deliveryModel
-                    .countDocuments({ [typeField]: userId, ...match, status: 'delivered' })
-                    .exec(),
-                cancelled: await this.deliveryModel
-                    .countDocuments({ [typeField]: userId, ...match, isCancelled: true })
-                    .exec(),
+                total: (await this.deliveryModel.countDocuments({ [typeField]: userId, ...match })),
+                pending: await this.deliveryModel.countDocuments({ [typeField]: userId, ...match, status: 'pending' }).exec(),
+                inTransit: await this.deliveryModel.countDocuments({ [typeField]: userId, ...match, status: 'in-transit' }).exec(),
+                delivered: await this.deliveryModel.countDocuments({ [typeField]: userId, ...match, status: 'delivered' }).exec(),
+                cancelled: await this.deliveryModel.countDocuments({ [typeField]: userId, ...match, isCancelled: true }).exec(),
             };
         };
 
-        // Get current counts
-        const currentCounts = await getCounts({ [typeField]: userId });
-
-        // Get counts for the previous week
-        const previousCounts = await getCounts({
-            createdAt: { $gte: lastWeekStart, $lte: lastWeekEnd },
-            [typeField]: userId, // Use the determined field
+        // Get counts for the last 7 days
+        const currentCounts = await getCounts({
+            createdAt: { $gte: last7DaysStart }
         });
+
+        // Get counts for the previous 7 days
+        const previousCounts = await getCounts({
+            createdAt: { $gte: prev7DaysStart, $lte: prev7DaysEnd }
+        });
+
+        const countAll = await getCounts();
+
+        log({ currentCounts, previousCounts, countAll })  
 
         // Calculate percentage changes
         const calculatePercentageChange = (current: number, previous: number) => {
             if (previous === 0) return current === 0 ? 0 : 100;
-            const change = ((current - previous) / previous) * 100;
-            return Math.min(change, 100);
+            return ((current - previous) / previous) * 100;
         };
 
         const percentageChanges = {
@@ -503,19 +508,10 @@ export class DeliveryService {
         };
 
         // Get deliveries by time range
-        const getDeliveriesByTimeRange = async (startDate: Date, endDate: Date) => {
-            return this.deliveryModel
-                .find({
-                    createdAt: { $gte: startDate, $lte: endDate },
-                    [typeField]: userId, // Use the determined field
-                })
-                .exec();
-        };
-
         const getDeliveriesCountByTimeRange = async (startDate: Date, endDate: Date) => {
             return this.deliveryModel.countDocuments({
                 createdAt: { $gte: startDate, $lte: endDate },
-                [typeField]: userId, // Use the determined field
+                [typeField]: userId,
             }).exec();
         };
 
@@ -543,7 +539,6 @@ export class DeliveryService {
         }).map(async (date) => {
             const dayEnd = addDays(date, 1);
             const count = await getDeliveriesCountByTimeRange(date, dayEnd);
-            console.log(`Debug: Date: ${format(date, 'yyyy-MM-dd', { locale: enUS })}`);
             return {
                 day: format(date, 'EEEE', { locale: enUS }),
                 date: format(date, 'yyyy-MM-dd', { locale: enUS }),
@@ -559,14 +554,14 @@ export class DeliveryService {
 
         // Get latest 10 deliveries
         const latestDeliveries = await this.deliveryModel
-            .find({ [typeField]: userId }) // Use the determined field
+            .find({ [typeField]: userId })
             .sort({ createdAt: -1 })
             .limit(10)
             .populate(['dispatcher', 'courier'])
             .exec();
 
         return {
-            counts: currentCounts,
+            counts: countAll,
             percentageChanges,
             yearlyDeliveries: yearlyCounts,
             monthlyDeliveries: monthlyCounts,
@@ -574,45 +569,49 @@ export class DeliveryService {
             latestDeliveries,
         };
     }
+    // ...existing code...
+    // ...existing code...
     async getDeliveryStatisticsForAdmin() {
-        // log({user})
         const now = new Date();
-        const lastWeekStart = startOfWeek(subWeeks(now, 1), { locale: enUS });
-        const lastWeekEnd = endOfWeek(subWeeks(now, 1), { locale: enUS });
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
 
-        // Helper function to get counts with optional date range
+        const last7DaysStart = new Date(today);
+        last7DaysStart.setDate(today.getDate() - 7);
+
+        const prev7DaysStart = new Date(today);
+        prev7DaysStart.setDate(today.getDate() - 13);
+        const prev7DaysEnd = new Date(today);
+        prev7DaysEnd.setDate(today.getDate() - 7);
+        prev7DaysEnd.setHours(23, 59, 59, 999);
+
         const getCounts = async (match: any = {}) => {
             return {
-                total: await this.deliveryModel.countDocuments({  ...match }).exec(),
-                pending: await this.deliveryModel
-                    .countDocuments({  ...match, status: 'pending' })
-                    .exec(),
-                active: await this.deliveryModel
-                    .countDocuments({  ...match, status: 'in-transit' })
-                    .exec(),
-                delivered: await this.deliveryModel
-                    .countDocuments({  ...match, status: 'delivered' })
-                    .exec(),
-                cancelled: await this.deliveryModel
-                    .countDocuments({...match, isCancelled: true })
-                    .exec(),
+                total: await this.deliveryModel.countDocuments({ ...match }).exec(),
+                pending: await this.deliveryModel.countDocuments({ ...match, status: 'pending' }).exec(),
+                active: await this.deliveryModel.countDocuments({ ...match, status: 'in-transit' }).exec(),
+                delivered: await this.deliveryModel.countDocuments({ ...match, status: 'delivered' }).exec(),
+                cancelled: await this.deliveryModel.countDocuments({ ...match, isCancelled: true }).exec(),
                 'active-couriers': await this.courierService.allActiveCourier()
             };
         };
 
-        // Get current counts
-        const currentCounts = await getCounts();
+        // Get counts for the last 7 days
+        const currentCounts = await getCounts({
+            createdAt: { $gte: last7DaysStart }
+        });
 
-        // Get counts for the previous week
+        const totalCounts = await getCounts();
+
+        // Get counts for the previous 7 days
         const previousCounts = await getCounts({
-            createdAt: { $gte: lastWeekStart, $lte: lastWeekEnd },
+            createdAt: { $gte: prev7DaysStart, $lte: prev7DaysEnd }
         });
 
         // Calculate percentage changes
         const calculatePercentageChange = (current: number, previous: number) => {
             if (previous === 0) return current === 0 ? 0 : 100;
-            const change = ((current - previous) / previous) * 100;
-            return Math.min(change, 100);
+            return ((current - previous) / previous) * 100;
         };
 
         const percentageChanges = {
@@ -623,22 +622,14 @@ export class DeliveryService {
             cancelled: calculatePercentageChange(currentCounts.cancelled, previousCounts.cancelled),
         };
 
-        // Get deliveries by time range
-        const getDeliveriesByTimeRange = async (startDate: Date, endDate: Date) => {
-            return this.deliveryModel
-                .find({
-                    createdAt: { $gte: startDate, $lte: endDate },
-                })
-                .exec();
-        };
-
+        // ...rest of your function (yearly, monthly, weekly, latestDeliveries, topCouriers) remains unchanged...
+        // ...existing code...
         const getDeliveriesCountByTimeRange = async (startDate: Date, endDate: Date) => {
             return this.deliveryModel.countDocuments({
                 createdAt: { $gte: startDate, $lte: endDate },
             }).exec();
         };
 
-        // Yearly deliveries for the past 12 months
         const yearlyDeliveries = eachMonthOfInterval({
             start: subMonths(now, 11),
             end: now,
@@ -648,21 +639,18 @@ export class DeliveryService {
             return { month: format(date, 'MMMM', { locale: enUS }), count };
         });
 
-        // Monthly deliveries
         const monthlyDeliveries = eachDayOfInterval({ start: startOfMonth(now), end: endOfMonth(now) }).map(async (date) => {
             const dayEnd = addDays(date, 1);
             const count = await getDeliveriesCountByTimeRange(date, dayEnd);
             return { day: format(date, 'yyyy-MM-dd', { locale: enUS }), count };
         });
 
-        // Weekly deliveries
         const weeklyDeliveries = eachDayOfInterval({
             start: startOfWeek(now, { locale: enGB }),
             end: endOfWeek(now, { locale: enGB }),
         }).map(async (date) => {
             const dayEnd = addDays(date, 1);
             const count = await getDeliveriesCountByTimeRange(date, dayEnd);
-            console.log(`Debug: Date: ${format(date, 'yyyy-MM-dd', { locale: enUS })}`);
             return {
                 day: format(date, 'EEEE', { locale: enUS }),
                 date: format(date, 'yyyy-MM-dd', { locale: enUS }),
@@ -676,9 +664,8 @@ export class DeliveryService {
             Promise.all(weeklyDeliveries),
         ]);
 
-        // Get latest 10 deliveries
         const latestDeliveries = await this.deliveryModel
-            .find() // Use the determined field
+            .find()
             .sort({ createdAt: -1 })
             .limit(10)
             .populate(['dispatcher', 'courier'])
@@ -687,7 +674,7 @@ export class DeliveryService {
         const topCouriers = await this.userService.topCouriers();
 
         return {
-            counts: currentCounts,
+            counts: totalCounts,
             percentageChanges,
             yearlyDeliveries: yearlyCounts,
             monthlyDeliveries: monthlyCounts,
@@ -696,6 +683,7 @@ export class DeliveryService {
             topCouriers
         };
     }
+    // ...existing code...
     async getDeliveryStatisticsForSupportStaff() {
         // log({user})
         const now = new Date();
@@ -705,18 +693,18 @@ export class DeliveryService {
         // Helper function to get counts with optional date range
         const getCounts = async (match: any = {}) => {
             return {
-                total: await this.deliveryModel.countDocuments({  ...match }).exec(),
+                total: await this.deliveryModel.countDocuments({ ...match }).exec(),
                 pending: await this.deliveryModel
-                    .countDocuments({  ...match, status: 'pending' })
+                    .countDocuments({ ...match, status: 'pending' })
                     .exec(),
                 active: await this.deliveryModel
-                    .countDocuments({  ...match, status: 'in-transit' })
+                    .countDocuments({ ...match, status: 'in-transit' })
                     .exec(),
                 delivered: await this.deliveryModel
-                    .countDocuments({  ...match, status: 'delivered' })
+                    .countDocuments({ ...match, status: 'delivered' })
                     .exec(),
                 cancelled: await this.deliveryModel
-                    .countDocuments({...match, isCancelled: true })
+                    .countDocuments({ ...match, isCancelled: true })
                     .exec(),
                 'active-couriers': await this.courierService.allActiveCourier()
             };
@@ -980,10 +968,10 @@ export class DeliveryService {
             throw new NotFoundException({ message: "Failed to retrieve deliveries" }); // Or handle the error as needed
         }
     }
-    async confirmDeliverySubmission (sessionId: string) {
+    async confirmDeliverySubmission(sessionId: string) {
         let delivery = await this.viewDeliveryBySessionId(sessionId);
-        await this.deliveryModel.findByIdAndUpdate((<any> delivery).id, { status: "delivered" });
-        let new_delivery = await this.deliveryModel.findById((<any> delivery).id).populate("courier");
+        await this.deliveryModel.findByIdAndUpdate((<any>delivery).id, { status: "delivered" });
+        let new_delivery = await this.deliveryModel.findById((<any>delivery).id).populate("courier");
         this.userService.notifyCourier(new_delivery.courier)
         return {
             message: "Delivery accepted successfully",
