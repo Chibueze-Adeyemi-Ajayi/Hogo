@@ -64,6 +64,9 @@ export class Delivery {
     long: string
 
     @Prop()
+    lng: string
+
+    @Prop()
     location: string
 
     @Prop()
