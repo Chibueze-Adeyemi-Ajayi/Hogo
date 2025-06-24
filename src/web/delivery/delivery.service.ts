@@ -223,7 +223,7 @@ export class DeliveryService {
             let tracking = []
 
             for (const delivery of deliveries) {
-                let _tracking = await this.trackingModel.findOne({ delivery:  delivery.id});
+                let _tracking = await this.trackingModel.findOne({ delivery: delivery.id });
                 if (_tracking) {
                     tracking.push({
                         delivery: delivery,
@@ -431,12 +431,33 @@ export class DeliveryService {
         couriers.forEach(courier => {
             const msg = `Hello ${courier.name}\n\nAn order is available for pickup, kindly check available orders to pick it up`;
             this.utilService.sendEmail(msg, "Delivery Alert !", courier.email, "box");
+            if (courier.phone_number) {
+                let phone = courier.phone_number.startsWith('+') ? courier.phone_number : `+${courier.phone_number}`;
+                if (this.isValidInternationalPhone(phone)) {
+                    try {
+                        this.utilService.sendSms(phone, 'An order is available for pickup, kindly login to your app to pick it up');
+                    } catch (error) {
+                        log({ error })
+                    }
+                } else {
+                    log(`Invalid phone number for courier ${courier.name} - ${courier.phone_number}`);
+                }
+            } else
+                log("OOpps cant send sms ");
+
+            // this.utilService.sendSms("+2348131869009", 'An order is available for pickup, kindly login to your app to pick it up');
         })
 
         return {
             message: "Request has been sent to the recipient for approval",
             delivery
         }
+    }
+
+    private isValidInternationalPhone(phone: string): boolean {
+        if (!phone) return false;
+        // Must start with "+" and have at least 10 digits after "+"
+        return /^\+\d{10,15}$/.test(phone);
     }
     async toggleDelivery(slug: string, action: ToogleDeliveryDTO) {
 
@@ -895,7 +916,7 @@ export class DeliveryService {
             let tracking = []
 
             for (const delivery of deliveries) {
-                let _tracking = await this.trackingModel.findOne({ delivery:  delivery.id});
+                let _tracking = await this.trackingModel.findOne({ delivery: delivery.id });
                 if (_tracking) {
                     tracking.push({
                         delivery: delivery,

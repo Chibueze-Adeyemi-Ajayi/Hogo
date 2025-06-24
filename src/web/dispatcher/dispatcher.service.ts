@@ -7,6 +7,7 @@ import { Model } from 'mongoose';
 import { DeliveryService } from '../delivery/delivery.service';
 import { CancelDeliveryDTO, CreateDeliveryDTO, DeliveryQueryDTO, UpdateDeliveryDTO } from '../delivery/delivery.dto/delivery.dto';
 import { User } from '../user/user.schema/user.schema';
+import { UtilsService } from 'src/common/utils/utils.service';
 
 @Injectable()
 export class DispatcherService {
@@ -14,6 +15,7 @@ export class DispatcherService {
     constructor(
         // private readonly jwtService: JwtService,
         // @Inject(forwardRef(() => DeliveryService))
+        private readonly utilService: UtilsService,
         private readonly deliveryService: DeliveryService,
         // @InjectModel(Dispatcher.name) private readonly dispatcherModel: Model<DispatcherDocument>
     ) { }

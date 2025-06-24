@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { UserModule } from '../user/user.module';
+import { UtilsModule } from 'src/common/utils/utils.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { UserModule } from '../user/user.module';
     ]),
     JwtModule, 
     DeliveryModule,
-    UserModule
+    UserModule,
+    UtilsModule
   ],
   controllers: [DispatcherController],
   providers: [DispatcherService],

@@ -18,6 +18,7 @@ import { AdminSupportStaffModule } from './web/admin/admin.module';
 import { SupportAgentModule } from './web/support-agent/support-agent.module';
 import { IssuesModule } from './web/issues/issues.module';
 import { RefundModule } from './web/refund/refund.module';
+import { ContactModule } from './web/contact/contact.module';
 
 @Module({
   imports: [
@@ -78,6 +79,8 @@ import { RefundModule } from './web/refund/refund.module';
     IssuesModule,
 
     RefundModule,
+
+    ContactModule,
 
   ],
   controllers: [AppController],
