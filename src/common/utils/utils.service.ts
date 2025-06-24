@@ -55,7 +55,7 @@ export class UtilsService {
             this.logger.debug('SMS sent:', message.sid);
             return message;
         } catch (error) {
-            this.logger.debug('Error sending SMS:', error);
+            this.logger.debug('Error sending SMS:', error); 
         }
     }
 
