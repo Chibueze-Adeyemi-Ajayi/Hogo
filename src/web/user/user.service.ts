@@ -166,7 +166,18 @@ export class UserService {
 
         this.logger.debug(`OTP ${otp} stored for user ${email}`);
 
-        this.utilService.sendEmail(`Your password reset OTP is ${otp}, it would expire in 10 minutes time: ${otpExpiry}`, "OTP Request", email, null);
+        const expiryDate = new Date(Date.now() + 60 * 60 * 1000); // Add 1 hour to current UTC time
+        let html = `<p class="title">Your OTP Code</p>
+            <div class="otp-code">${otp}</div>
+            <p class="info">This code will expire in <strong>10 minutes</strong>.<br />
+            Expiration: <strong>${expiryDate.toUTCString()}</strong></p>
+            </div>
+            <div class="footer">
+            If you didn't request a password reset, you can safely ignore this message.<br />
+            &copy; ${new Date().getFullYear()} RoadOpp
+            </div>`
+
+        this.utilService.sendEmail(html, "Password Reset", email, null);
 
         return {
             message: `An email has been sent to ${email}`,
@@ -311,11 +322,22 @@ export class UserService {
 
         let dispatcher = delivery.dispatcher, email = dispatcher.email, name = dispatcher.name;
 
-        let tracking_link = `\nUse this link ${process.env.BASE_URL}/recipient/track/${sessionId} to track the delivery`
+        // let tracking_link = `\nUse this link ${process.env.BASE_URL}/recipient/track/${sessionId} to track the delivery`;
 
-        this.utilService.sendEmail(`Hello ${name}\n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up !", email, "box");
+        let recipient_html_mail = `<div class="container">
+            <div class="content" style='text-align: left'>
+            <p style="margin-top: -80px;  font-size:18px;">Your order has been picked up by the courier. You can track your order using the link below.</p>
+            <a href="https://www.roadopp.com/recipient/${sessionId}" style="color: white" class="track-link" target="_blank">Track Order</a>
+            <br><br>
+            </div> 
+            <div class="footer">
+            &copy; ${new Date().getFullYear()} RoadOpp &mdash; All rights reserved.
+            </div> 
+        </div>`
 
-        this.utilService.sendEmail(`Hello \n Your delivery order ${delivery.tracking_id} has been picked up by the courier.${tracking_link}`, "Delivery Pick up", delivery.recipient.email, "box");
+        this.utilService.sendEmail(recipient_html_mail, "Order Update", email, "box");
+
+        this.utilService.sendEmail(recipient_html_mail, "Order Update", delivery.recipient.email, "box");
 
     }
     async updateProfile(user: User, data: UpdateUserDto) {
@@ -645,7 +667,7 @@ export class UserService {
                 dispatchers: calculatePercentageChange(dispatchersCurrent, dispatchersPrevious),
             },
         };
-        
+
     }
 
 }

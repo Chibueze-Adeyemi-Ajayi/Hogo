@@ -23,6 +23,7 @@ export class UserDto {
     description: "User's department",
     example: "Radiology",
   })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   department: string;
@@ -48,6 +49,7 @@ export class UserDto {
     example: "SN12345",
   })
   @IsString()
+  @IsOptional()
   @IsNotEmpty()
   staff_number: string;
 
@@ -110,7 +112,7 @@ export class UpdateUserDto {
   @IsString()
   @IsNotEmpty()
   phone_number: string;
-
+ 
   @ApiProperty({
     description: "User's role",
     example: "Dispatcher",

@@ -102,9 +102,19 @@ export class DeliveryService {
         if (!delivery) throw new NotFoundException({ message: "Delivery not found" })
         let update = await this.deliveryModel.findByIdAndUpdate(id, data);
         // forward email
-        let receiver = delivery.recipient.email, url = process.env.BASE_URL + "/recipient/" + sessionId;
-        const msg = `Hello \n\Your delivery is available for you to pickup from the courier, use this link to confirm ${url}`;
-        this.utilService.sendEmail(msg, "Delivery Alert !", receiver, "location");
+        let recipient_html_mail = `<div class="container">
+            <div class="content" style='text-align: left'>
+            <p style="margin-top: -80px; font-size:18px;">Your order has been delivered. Please use the link below to confirm you received it.</p>
+            <a href="https://www.roadopp.com/recipient/${sessionId}" style="color: white; font-weight: 500;" class="pickup-link" target="_blank">Confirm Pickup</a>
+            <br><br>
+            </div> 
+            <div class="footer"> 
+            &copy; ${new Date().getFullYear()} RoadOpp &mdash; All rights reserved.
+            </div> 
+        </div>`
+        let receiver = delivery.recipient.email; //, url = process.env.BASE_URL + "/recipient/" + sessionId;
+        // const msg = `Hello \n\Your delivery is available for you to pickup from the courier, use this link to confirm ${url}`;
+        this.utilService.sendEmail(recipient_html_mail, "Pickup Notification", receiver, "location");
         return update;
     }
     async updateDelivery(data: UpdateDeliveryDTO, tracking_id: string, dispatcher: User) {
@@ -435,14 +445,14 @@ export class DeliveryService {
                 let phone = courier.phone_number.startsWith('+') ? courier.phone_number : `+${courier.phone_number}`;
                 if (this.isValidInternationalPhone(phone)) {
                     try {
-                        this.utilService.sendSms(phone, 'An order is available for pickup, kindly login to your app to pick it up');
+                        this.utilService.sendSms(phone, 'A new pickup request has been added. Check "Available Requests" to accept the pickup.');
                     } catch (error) {
-                        log({ error })
+                        log({ error }); 
                     }
                 } else {
-                    log(`Invalid phone number for courier ${courier.name} - ${courier.phone_number}`);
+                    log(`Invalid phone number for courier ${courier.name} - ${courier.phone_number}`); 
                 }
-            } else
+            } else 
                 log("OOpps cant send sms ");
 
             // this.utilService.sendSms("+2348131869009", 'An order is available for pickup, kindly login to your app to pick it up');
