@@ -12,7 +12,7 @@ export class MicrosoftAzureService implements OnModuleInit {
     private logger = new Logger(MicrosoftAzureService.name);
 
     private STORAGE_PATH = path.join(__dirname + '/uploads');
-    private BLOB_CONTAINERS: Array<BlobServiceClient> = [];
+    private BLOB_CONTAINERS: Array<BlobServiceClient> = []; 
     private containerName = process.env.AZURE_CONTAINER;
 
     async onModuleInit() {
@@ -43,7 +43,7 @@ export class MicrosoftAzureService implements OnModuleInit {
 
             log({files})
 
-            let images = [], resource_base_url = `https://campaignbucket.blob.core.windows.net/${this.containerName}`;
+            let images = [], resource_base_url = `https://roadopp.blob.core.windows.net/${this.containerName}` //`https://campaignbucket.blob.core.windows.net/${this.containerName}`;
             // log({ files })
             const formdata = new FormData();
             // var hasVideoUpload = false;
@@ -76,7 +76,7 @@ export class MicrosoftAzureService implements OnModuleInit {
             return images;
 
         } catch (error: any) {
-            log("Upload Error: ", error.response)
+            log("Upload Error: ", error)
             log(error.response.data)
             return null;
         }

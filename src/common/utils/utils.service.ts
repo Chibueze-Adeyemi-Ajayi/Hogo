@@ -137,6 +137,11 @@ export class UtilsService {
                 text-align: center;
                 }
 
+                .content p {
+                font-size: 16px;
+                margin-bottom: 20px;
+                }
+
                 .content h2 {
                 font-size: 20px;
                 margin-bottom: 10px;
@@ -194,6 +199,23 @@ export class UtilsService {
                 border-radius: 8px;
                 text-decoration: none;
                 font-weight: 500;
+                }
+
+                .field-label {
+                font-weight: bold;
+                margin-top: 20px;
+                margin-bottom: 5px;
+                color: #003300;
+                text-align: left;
+                }
+
+                .field-value {
+                background-color: #f0f0f0;
+                padding: 12px 16px;
+                border-radius: 8px;
+                font-size: 15px;
+                line-height: 1.5;
+                text-align: left;
                 }
 
                 .info {
