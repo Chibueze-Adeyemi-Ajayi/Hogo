@@ -16,7 +16,8 @@ export class ContactService {
     async contact(data: ContactDTO) {
         const html = this.generateContactHtml(data);
         const contact = new this.contactModel(data);
-        this.utilService.sendEmail(html, data.phone && data.message ? "New Driver Enquiry" : "Contact", "chibuezeadeyemi@gmail.com", null, true);
+        this.utilService.sendEmail(html, data.phone && data.message ? "New Driver Enquiry" : "Contact", "tobi@roadopp.com", null, true);
+        this.utilService.sendEmail(html, data.phone && data.message ? "New Driver Enquiry" : "Contact", "support@roadopp.com", null, true);
         await contact.save();
         return { message: "Message sent successfully", data }
     }
