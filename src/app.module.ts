@@ -41,7 +41,7 @@ import { ContactModule } from './web/contact/contact.module';
         tls: { rejectUnauthorized: false },
         host: process.env.WEBMAIL_HOST,
         port: parseInt(process.env.WEBMAIL_PORT || "465"),
-        secure: true,
+        secure: false,
         auth: {
           user: process.env.WEBMAIL_USERNAME,
           pass: process.env.WEBMAIL_PASSWORD

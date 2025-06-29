@@ -53,7 +53,7 @@ export class UserService {
 
     async signUp(data: UserDto) {
 
-        this.logger.log("User signin")
+        this.logger.log("User signin") 
 
         if (data.admin_id) {
             if (data.role.toLowerCase() == "supportstaff") {
@@ -64,8 +64,8 @@ export class UserService {
         let existing_email = await this.userModel.findOne({ email: data.email });
         if (existing_email) throw new ConflictException({ message: "Email already exists" });
 
-        let existing_staff_number = await this.userModel.findOne({ staff_number: data.staff_number });
-        if (existing_staff_number) throw new ConflictException({ message: "Staff number already exists" });
+        // let existing_staff_number = await this.userModel.findOne({ staff_number: data.staff_number });
+        // if (existing_staff_number) throw new ConflictException({ message: "Staff number already exists" });
 
         const saltOrRounds = parseInt(process.env.BYCRYPT_SALT);
         const hash = await bcrypt.hash(data.password, saltOrRounds);

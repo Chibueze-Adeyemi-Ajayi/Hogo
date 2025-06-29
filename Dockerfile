@@ -22,7 +22,7 @@ EXPOSE 3000
 
 # Define environment variables (optional, but good practice)
 ENV NODE_ENV=production
-ENV API_VERSION=1.0.9
+ENV API_VERSION=1.0.0
 ENV DB_NAME = hogo_prod_db
 ENV BASE_URL = https://roadopp.com/
 

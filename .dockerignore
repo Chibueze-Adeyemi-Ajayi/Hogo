@@ -1,0 +1,32 @@
+# Hidden files
+.git
+.svn
+.hg
+.DS_Store
+.vscode
+
+# Log files
+logs/
+*.log
+
+# Build artifacts
+node_modules/
+.git
+.env
+.vscode
+.idea
+test
+coverage
+
+# code base
+dist/
+
+# docker
+Dockerfile
+.dockerignore
+
+# env
+.env
+.env.*
+
+intasync-5c562-firebase-adminsdk-fbsvc-c6ad893e78.json
