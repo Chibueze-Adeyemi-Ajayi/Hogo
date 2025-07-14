@@ -31,7 +31,7 @@ export class UtilsService {
             }
 
             const body = {
-                from: `Hogoe <${process.env.WEBMAIL_USERNAME}>`,
+                from: `Roadopp <${process.env.WEBMAIL_USERNAME}>`,
                 to: recipient,
                 subject
             }
